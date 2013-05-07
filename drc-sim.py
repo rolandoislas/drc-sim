@@ -55,7 +55,7 @@ class ServiceBase(object):
 
 pa_initted = False
 pa_num_bufs = 9
-pa_ring = [0] * pa_num_bufs
+pa_ring = [array.array('H', '\0' * 416)] * pa_num_bufs
 pa_wpos = pa_rpos = 0
 def pa_callback(in_data, frame_count, time_info, status):
     global pa_num_bufs, pa_ring, pa_wpos, pa_rpos
@@ -384,8 +384,6 @@ def hid_snd():
     
     HID_S.sendto(report, ('192.168.1.10', PORT_HID))
     hid_seq_id += 1
-
-time.sleep(1)
 
 EVT_SEND_HID = pygame.USEREVENT
 pygame.time.set_timer(EVT_SEND_HID, int((1. / 180.) * 1000.))
