@@ -223,8 +223,67 @@ class ServiceVSTRM(ServiceBase):
             s.decoder.display_frame(nals.tostring())
 
 class ServiceCMD(ServiceBase):
+    def __init__(s):
+        s.header_cmd0 = construct.Struct('CMD0Header',
+            construct.UBInt8('magic'),
+            construct.UBInt8('unk_0'),
+            construct.UBInt8('unk_1'),
+            construct.UBInt8('unk_2'),
+            construct.UBInt8('unk_3'),
+            construct.UBInt8('flags'),
+            construct.UBInt8('id_primary'),
+            construct.UBInt8('id_secondary'),
+            construct.UBInt16('error_code'),
+            construct.UBInt16('payload_size_cmd0')
+        )
+        '''
+        s.header_cmd1 = construct.Struct('CMD1Header',
+            
+        )
+        '''
+        s.header_cmd2 = construct.Struct('CMD2Header',
+            construct.ULInt16('JDN_base'),
+            construct.Padding(2),
+            construct.ULInt32('seconds')
+        )
+        s.header = construct.Struct('CMDHeader',
+            construct.ULInt16('packet_type'),
+            construct.ULInt16('cmd_id'),
+            construct.ULInt16('payload_size'),
+            construct.ULInt16('seq_id'),
+            construct.Switch('cmd_hdr', lambda ctx: ctx.cmd_id,
+                {
+                    0 : construct.If(lambda ctx: ctx.payload_size >= s.header_cmd0.sizeof(), construct.Embed(s.header_cmd0)),
+                    2 : construct.If(lambda ctx: ctx.payload_size == s.header_cmd2.sizeof(), construct.Embed(s.header_cmd2)),
+                },
+                default = construct.Pass
+            )
+        )
+        s.cmd_handlers = {
+            0 : s.cmd0,
+            1 : s.cmd1,
+            2 : s.cmd2
+        }
+        s.cmd0_handlers = {
+            5 : { 6 : s.cmd0_5_6 },
+        }
+
+    def cmd0_5_6(s, packet):
+        print 'CMD 0 5 6', packet[20:].encode('hex')
+
+    def cmd0(s, h, packet):
+        s.cmd0_handlers[h.id_primary][h.id_secondary](packet)
+
+    def cmd1(s, h, packet):
+        pass
+
+    def cmd2(s, h, packet):
+        pass
+
     def update(s, packet):
-        print 'CMD', packet.encode('hex')
+        #print 'CMD', packet.encode('hex')
+        h = s.header.parse(packet)
+        s.cmd_handlers[h.cmd_id](h, packet)
 
 class ServiceMSG(ServiceBase):
     def update(s, packet):
