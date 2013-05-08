@@ -10,7 +10,7 @@ class H264Decoder:
         s.ffi.cdef('''
             // AVCODEC
             
-            enum PixelFormat { PIX_FMT_RGBA, PIX_FMT_YUV420P, PIX_FMT_RGB24, ... };
+            enum PixelFormat { PIX_FMT_YUV420P, PIX_FMT_RGB24, ... };
             
             void avcodec_register_all(void);
             
@@ -42,6 +42,7 @@ class H264Decoder:
             
             // SWSCALE
             
+            #define SWS_BILINEAR ...
             #define SWS_FAST_BILINEAR ...
             struct SwsContext *sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
                                             int dstW, int dstH, enum PixelFormat dstFormat,
