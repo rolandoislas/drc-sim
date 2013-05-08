@@ -1,6 +1,9 @@
 from cffi import FFI
 import pygame
 
+# TODO static alloc in_data and make interface for reading/writing directly to it
+#   remove array.array usage of calling code
+
 class H264Decoder:
     def __init_ffi(s):
         s.ffi = FFI()

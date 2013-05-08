@@ -223,6 +223,13 @@ class ServiceVSTRM(ServiceBase):
             s.decoder.display_frame(nals.tostring())
 
 class ServiceCMD(ServiceBase):
+    PT_REQ      = 0
+    PT_REQ_ACK  = 1
+    PT_RESP     = 2
+    PT_RESP_ACK = 3
+    
+    CMD0_OK = 0
+    
     def __init__(s):
         s.header_cmd0 = construct.Struct('CMD0Header',
             construct.UBInt8('magic'),
@@ -270,6 +277,8 @@ class ServiceCMD(ServiceBase):
 
     def cmd0_5_6(s, packet):
         print 'CMD 0 5 6', packet[20:].encode('hex')
+        s.send_response_cmd0(h,
+            '')
 
     def cmd0(s, h, packet):
         s.cmd0_handlers[h.id_primary][h.id_secondary](packet)
@@ -278,12 +287,48 @@ class ServiceCMD(ServiceBase):
         pass
 
     def cmd2(s, h, packet):
-        pass
+        print 'TIME base {:04x} seconds {:08x}'.format(h.JDN_base, h.seconds)
+        s.send_response(h)
+
+    def ack(s, h):
+        ack = s.header.build(
+            construct.Container(
+                packet_type = s.PT_REQ_ACK if h.packet_type == s.PT_REQ else s.PT_RESP_ACK,
+                cmd_id = h.cmd_id,
+                payload_size = 0,
+                seq_id = h.seq_id
+            )
+        )
+        CMD_S.sendto(ack, ('192.168.1.10', PORT_MSG))
+
+    def send_request(s, h, data = ''):
+        s.send_cmd(h, s.PT_REQ, data)
+
+    def send_response(s, h, data = ''):
+        s.send_cmd(h, s.PT_RESP, data)
+
+    def send_response_cmd0(s, h, data = '', result = s.CMD0_OK):
+        assert h.cmd_id == 0
+        h.flags = ((h.flags >> 3) & 0xfc) | 1
+        h.error_code = result
+        h.payload_size_cmd0 = len(data)
+        s.send_response(h, data)
+
+    def send_cmd(s, h, type, data):
+        h.packet_type = type
+        h.payload_size = len(data)
+        # compensate for the fact that data doesn't include cmd0 header
+        if h.cmd_id == 0:
+            h.payload_size += s.header_cmd0.sizeof()
+        CMD_S.sendto(s.header.build(h) + data, ('192.168.1.10', PORT_MSG))
 
     def update(s, packet):
         #print 'CMD', packet.encode('hex')
         h = s.header.parse(packet)
-        s.cmd_handlers[h.cmd_id](h, packet)
+        # don't track acks from the console for now
+        if h.packet_type in (s.PT_REQ, s.PT_RESP):
+            s.ack(h)
+            s.cmd_handlers[h.cmd_id](h, packet)
 
 class ServiceMSG(ServiceBase):
     def update(s, packet):
