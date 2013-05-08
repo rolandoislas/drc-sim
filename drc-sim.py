@@ -155,7 +155,7 @@ class ServiceASTRM(ServiceBase):
 class ServiceVSTRM(ServiceBase):
     dimensions = {
         'camera' : (640, 480),
-        'gamepad' :  (854, 480)
+        'gamepad' : (854, 480)
     }
     
     def __init__(s):
@@ -450,6 +450,19 @@ def hid_snd():
             report[6 + i * 2 + 1] = (scaled >> 8) & 0xff
     report[2] = (button_bits >> 8) & 0xff
     report[3] = button_bits & 0xff
+    
+    # touchpanel crap @ 36 - 76
+    if pygame.mouse.get_pressed()[0]:
+        point = pygame.mouse.get_pos()
+        for i in xrange(10):
+            # x
+            report[36 + i * 4 + 0] = (point[0] >> 8) & 0xff
+            report[36 + i * 4 + 1] = point[0] & 0xff
+            # y
+            report[36 + i * 4 + 2] = (point[1] >> 8) & 0xff
+            report[36 + i * 4 + 3] = point[1] & 0xff
+        for i in xrange(4):
+            report[36 + i * 2] = 7
     # 8bit @ 80
     for i in xrange(9,11):
         if joystick.get_button(i):
