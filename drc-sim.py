@@ -379,7 +379,7 @@ hid_seq_id = 0
 def hid_snd():
     global joystick, hid_seq_id
     
-    report = array.array('B', '\0' * 0x80)
+    report = array.array('H', '\0\0' * 0x40)
     
     button_mapping = {
         0 : 0x8000, # a
@@ -412,8 +412,7 @@ def hid_snd():
     
     # 16bit LE @ 0 seq_id
     # seems to be ignored
-    report[1] = (hid_seq_id >> 8) & 0xff
-    report[0] = hid_seq_id & 0xff
+    report[0] = hid_seq_id
     # 16bit @ 2
     button_bits = 0
     for i in xrange(9):
@@ -446,30 +445,54 @@ def hid_snd():
                 elif i in (1, 4):
                     scaled = scale_stick(orig, 1, -1, 900, 3200)
             #print '%04i %04i %f' % (i, scaled, orig)
-            report[6 + i * 2 + 0] = scaled & 0xff
-            report[6 + i * 2 + 1] = (scaled >> 8) & 0xff
-    report[2] = (button_bits >> 8) & 0xff
-    report[3] = button_bits & 0xff
+            stick_mapping = { 0 : 0, 1 : 1, 3 : 2, 4 : 3 }
+            report[3 + stick_mapping[i]] = scaled
+    report[1] = (button_bits >> 8) | ((button_bits & 0xff) << 8)
     
     # touchpanel crap @ 36 - 76
+    byte_18 = 0
+    byte_17 = 3
+    byte_9b8 = 0
+    byte_9fd = 6
+    umi_fw_rev = 0x40
+    byte_9fb = 0
+    byte_19 = 2
     if pygame.mouse.get_pressed()[0]:
         point = pygame.mouse.get_pos()
+        screen_x, screen_y = pygame.display.get_surface().get_size()
+        x = scale_stick(point[0], 0, screen_x, 200, 3800)
+        y = scale_stick(point[1], 0, screen_y, 200, 3800)
+        z1 = 2000
+        
         for i in xrange(10):
-            # x
-            report[36 + i * 4 + 0] = 0x80 | ((point[0] >> 8) & 0xf)
-            report[36 + i * 4 + 1] = point[0] & 0xff
-            # y
-            report[36 + i * 4 + 2] = 0x80 | ((point[1] >> 8) & 0xf)
-            report[36 + i * 4 + 3] = point[1] & 0xff
-        for i in xrange(4):
-            report[36 + i * 2] |= 0x70
+            report[18 + i * 2 + 0] = 0x80 | x
+            report[18 + i * 2 + 1] = 0x80 | y
+        
+        report[18 + 0 * 2 + 0] |= ((z1 >> 0) & 7) << 12
+        report[18 + 0 * 2 + 1] |= ((z1 >> 3) & 7) << 12
+        report[18 + 1 * 2 + 0] |= ((z1 >> 6) & 7) << 12
+        report[18 + 1 * 2 + 1] |= ((z1 >> 9) & 7) << 12
+    
+    report[18 + 3 * 2 + 1] |= ((byte_17 >> 0) & 7) << 12
+    report[18 + 4 * 2 + 0] |= ((byte_17 >> 3) & 7) << 12
+    report[18 + 4 * 2 + 1] |= ((byte_17 >> 6) & 3) << 12
+    
+    report[18 + 5 * 2 + 0] |= ((byte_9fd >> 0) & 7) << 12
+    report[18 + 5 * 2 + 1] |= ((byte_9fd >> 3) & 7) << 12
+    report[18 + 6 * 2 + 0] |= ((byte_9fd >> 6) & 3) << 12
+    
+    report[18 + 7 * 2 + 0] |= ((umi_fw_rev >> 4) & 7) << 12
+    
+    # TODO checkout what's up with | 4
+    report[18 + 9 * 2 + 1] |= ((byte_19 & 2) | 4) << 12
+    
     # 8bit @ 80
     for i in xrange(9,11):
         if joystick.get_button(i):
-            report[80] |= button_mapping[i]
+            report[40] |= button_mapping[i]
     
-    report[0x7f] = 0xe0
-    
+    report[0x3f] = 0xe000
+    print report.tostring().encode('hex')
     HID_S.sendto(report, ('192.168.1.10', PORT_HID))
     hid_seq_id += 1
 
