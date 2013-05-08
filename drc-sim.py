@@ -8,7 +8,7 @@ import time
 from H264Decoder import H264Decoder
 
 pygame.init()
-pygame.display.set_mode([854, 480])
+pygame.display.set_mode([854, 480], pygame.RESIZABLE)
 pygame.display.set_caption("drc-sim")
 done = False
 pygame.joystick.init()
@@ -244,6 +244,11 @@ class ServiceVSTRM(ServiceBase):
             nals = s.h264_nal_encapsulate(is_idr, s.frame)
             s.decoder.display_frame(nals.tostring())
 
+    def resize_output(s, (x, y)):
+        d = s.dimensions['gamepad']
+        fit = pygame.Rect((0, 0), d).fit(pygame.display.get_surface().get_rect())
+        s.decoder.update_dimensions(d, fit.size)
+
 class ServiceCMD(ServiceBase):
     PT_REQ      = 0
     PT_REQ_ACK  = 1
@@ -462,6 +467,12 @@ while not done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = True
+        elif event.type == pygame.VIDEORESIZE:
+            pygame.display.set_mode(event.size, pygame.RESIZABLE)
+            service_handlers[VID_S].resize_output(event.size)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSLASH:
+                MSG_S.sendto('\1\0\0\0', ('192.168.1.10', PORT_MSG))
         elif event.type == EVT_SEND_HID:
             hid_snd()
     
