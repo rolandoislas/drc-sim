@@ -56,19 +56,6 @@ class ServiceBase(object):
     def close(s):
         pass
 
-pa_num_bufs = 15
-pa_ring = [array.array('H', '\0' * 416 * 2)] * pa_num_bufs
-pa_wpos = pa_rpos = 0
-def pa_callback(in_data, frame_count, time_info, status):
-    global pa_num_bufs, pa_ring, pa_wpos, pa_rpos
-    samples = pa_ring[pa_wpos]
-    pa_wpos += 1
-    pa_wpos %= pa_num_bufs
-    samples.extend(pa_ring[pa_wpos])
-    pa_wpos += 1
-    pa_wpos %= pa_num_bufs
-    return (samples, pyaudio.paContinue)
-
 class ServiceASTRM(ServiceBase):
     def __init__(s):
         super(ServiceASTRM, s).__init__()
@@ -106,6 +93,10 @@ class ServiceASTRM(ServiceBase):
         s.is_streaming = False
         s.p = pyaudio.PyAudio()
         s.stream = None
+        
+        s.pa_num_bufs = 15
+        s.pa_ring = [array.array('H', '\0' * 416 * 2)] * s.pa_num_bufs
+        s.pa_wpos = s.pa_rpos = 0
 
     def close(s):
         if s.stream != None:
@@ -118,8 +109,16 @@ class ServiceASTRM(ServiceBase):
             s.p = None
         s.is_streaming = False
 
+    def __pa_callback(s, in_data, frame_count, time_info, status):
+        samples = s.pa_ring[s.pa_wpos]
+        s.pa_wpos += 1
+        s.pa_wpos %= s.pa_num_bufs
+        samples.extend(s.pa_ring[s.pa_wpos])
+        s.pa_wpos += 1
+        s.pa_wpos %= s.pa_num_bufs
+        return (samples, pyaudio.paContinue)
+
     def update(s, packet):
-        global pa_ring, pa_rpos
         h = s.header.parse(packet)
         
         # ignore vid_format packets for now
@@ -135,21 +134,21 @@ class ServiceASTRM(ServiceBase):
             if h.vibrate:
                 print '*vibrate*'
             
-            pa_ring[pa_rpos] = array.array('H', packet[8:])
-            pa_rpos += 1
-            pa_rpos %= pa_num_bufs
+            s.pa_ring[s.pa_rpos] = array.array('H', packet[8:])
+            s.pa_rpos += 1
+            s.pa_rpos %= s.pa_num_bufs
             
             if s.is_streaming and not s.stream.is_active():
                 s.stream.close()
                 s.is_streaming = False
             
-            if pa_rpos > 8 and s.is_streaming == False:
+            if s.is_streaming == False:
                 s.stream = s.p.open(format = pyaudio.paInt16,
                     channels = 2,
                     rate = 48000,
                     output = True,
                     frames_per_buffer = 416 * 2,
-                    stream_callback = pa_callback)
+                    stream_callback = s.__pa_callback)
                 s.stream.start_stream()
                 s.is_streaming = True
 
