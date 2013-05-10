@@ -308,7 +308,7 @@ class ServiceCMD(ServiceBase):
     def cmd0(s, h, packet):
         print 'CMD0:%i:%i' % (h.id_primary, h.id_secondary)
         if h.id_primary not in s.cmd0_handlers or h.id_secondary not in s.cmd0_handlers[h.id_primary]:
-            print 'unhandled'
+            print 'unhandled', packet.encode('hex')
             return
         s.cmd0_handlers[h.id_primary][h.id_secondary](h, packet)
 
@@ -492,7 +492,7 @@ def hid_snd():
             report[40] |= button_mapping[i]
     
     report[0x3f] = 0xe000
-    print report.tostring().encode('hex')
+    #print report.tostring().encode('hex')
     HID_S.sendto(report, ('192.168.1.10', PORT_HID))
     hid_seq_id += 1
 
