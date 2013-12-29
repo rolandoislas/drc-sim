@@ -17,15 +17,15 @@ class H264Decoder:
             struct AVPacket { ...; uint8_t *data; int size; ...; };
             void av_init_packet(struct AVPacket *pkt);
             
-            enum CodecID { CODEC_ID_H264, ... };
-            struct AVCodec *avcodec_find_decoder(enum CodecID id);
+            enum AVCodecID { CODEC_ID_H264, ... };
+            struct AVCodec *avcodec_find_decoder(enum AVCodecID id);
 
             struct AVCodecContext *avcodec_alloc_context3(struct AVCodec *codec);
             
             int avcodec_open2(struct AVCodecContext *avctx, struct AVCodec *codec,
                             struct AVDictionary **options);
             
-            struct AVFrame { uint8_t *data[4]; int linesize[4]; ...; int key_frame; ...; };
+            struct AVFrame { uint8_t *data[8]; int linesize[8]; ...; int key_frame; ...; };
             struct AVFrame *avcodec_alloc_frame(void);
             
             int avcodec_decode_video2(struct AVCodecContext *avctx, struct AVFrame *picture,
