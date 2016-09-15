@@ -13,7 +13,8 @@ View justjake's [readme](https://github.com/justjake/drc-sim-keyboard/blob/maste
 
 # Controls
 
-The controls are hardcoded right now,  but i hope to move them to a config file.
+The controls are hardcoded right now,  but I hope to move them to a config file.
+
 | Gamepad | Keyboard |
 | ------- | -------- |
 | Up Down Left Right | Arrow Keys |
