@@ -11,9 +11,6 @@ pygame.init()
 pygame.display.set_mode([854, 480], pygame.RESIZABLE)
 pygame.display.set_caption("drc-sim")
 done = False
-pygame.joystick.init()
-joystick = pygame.joystick.Joystick(0)
-joystick.init()
 
 def service_addend(ip):
     if int(ip.split('.')[3]) == 10:
@@ -415,13 +412,48 @@ def hid_snd():
     report[0] = hid_seq_id
     # 16bit @ 2
     button_bits = 0
-    for i in xrange(9):
-        if joystick.get_button(i):
-            button_bits |= button_mapping[i]
-    # hat: (<l/r>, <u/d>) [-1,1]
-    hat = joystick.get_hat(0)
-    button_bits |= hat_mapping_x[hat[0]]
-    button_bits |= hat_mapping_y[hat[1]]
+    keys = pygame.key.get_pressed()
+    # Check buttons
+    if keys[pygame.K_SPACE]:
+    	button_bits |= button_mapping[0]
+    if keys[pygame.K_e]:
+    	button_bits |= button_mapping[1]
+    if keys[pygame.K_d]:
+    	button_bits |= button_mapping[2]
+    if keys[pygame.K_f]:
+    	button_bits |= button_mapping[3]
+    if keys[pygame.K_q]:
+    	button_bits |= button_mapping[4]
+    if keys[pygame.K_r]:
+    	button_bits |= button_mapping[5]
+    if keys[pygame.K_x]:
+    	button_bits |= button_mapping[6]
+    if keys[pygame.K_c]:
+    	button_bits |= button_mapping[7]
+    if keys[pygame.K_z]:
+    	button_bits |= button_mapping[8]
+    if keys[pygame.K_1]:
+    	button_bits |= trigger_mapping[2]
+    if keys[pygame.K_4]:
+    	button_bits |= trigger_mapping[5]
+    # Joysticks depressed
+    if keys[pygame.K_t]:
+    	report[40] |= button_mapping[9]
+    if keys[pygame.K_g]:
+    	report[40] |= button_mapping[10]
+    # Check Movement
+    if keys[pygame.K_RIGHT]:
+    	button_bits |= hat_mapping_x[1]
+    elif keys[pygame.K_LEFT]:
+    	button_bits |= hat_mapping_x[-1]
+    else:
+    	button_bits |= hat_mapping_x[0]
+    if keys[pygame.K_UP]:
+    	button_bits |= hat_mapping_y[1]
+    elif keys[pygame.K_DOWN]:
+    	button_bits |= hat_mapping_y[-1]
+    else:
+    	button_bits |= hat_mapping_y[0]
     # 16bit LE array @ 6
     # LX, LY, RX, RY
     # 0: l stick l/r
@@ -433,11 +465,8 @@ def hid_snd():
     def scale_stick(OldValue, OldMin, OldMax, NewMin, NewMax):
         return int((((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin)
     for i in xrange(6):
-        if i in (2, 5):
-            if joystick.get_axis(i) > 0:
-                button_bits |= trigger_mapping[i]
-        else:
-            orig = joystick.get_axis(i)
+        if i not in(2, 5):
+            orig = 0
             scaled = 0x800
             if abs(orig) > 0.2:
                 if i in (0, 3):
@@ -487,9 +516,6 @@ def hid_snd():
     report[18 + 9 * 2 + 1] |= ((byte_19 & 2) | 4) << 12
     
     # 8bit @ 80
-    for i in xrange(9,11):
-        if joystick.get_button(i):
-            report[40] |= button_mapping[i]
     
     report[0x3f] = 0xe000
     #print report.tostring().encode('hex')
