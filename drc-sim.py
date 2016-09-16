@@ -103,7 +103,7 @@ class ServiceASTRM(ServiceBase):
         s.is_streaming = False
         s.p = pyaudio.PyAudio()
         s.stream = None
-        
+
         s.pa_num_bufs = 15
         s.pa_ring = [array.array('H', '\0' * 416 * 2)] * s.pa_num_bufs
         s.pa_wpos = s.pa_rpos = 0
@@ -130,7 +130,7 @@ class ServiceASTRM(ServiceBase):
 
     def update(s, packet):
         h = s.header.parse(packet)
-        
+
         # ignore vid_format packets for now
         if h.packet_type == 0:
             seq_ok = s.update_seq_id(h.seq_id)
@@ -140,18 +140,18 @@ class ServiceASTRM(ServiceBase):
                 raise Exception('astrm currently only handles 48kHz PCM stereo')
             if len(packet) != 8 + h.payload_size:
                 raise Exception('astrm bad payload_size')
-            
+
             if h.vibrate:
                 print '*vibrate*'
-            
+
             s.pa_ring[s.pa_rpos] = array.array('H', packet[8:])
             s.pa_rpos += 1
             s.pa_rpos %= s.pa_num_bufs
-            
+
             if s.is_streaming and not s.stream.is_active():
                 s.stream.close()
                 s.is_streaming = False
-            
+
             if s.is_streaming == False:
                 s.stream = s.p.open(format = pyaudio.paInt16,
                     channels = 2,
@@ -167,7 +167,7 @@ class ServiceVSTRM(ServiceBase):
         'camera' : (640, 480),
         'gamepad' : (854, 480)
     }
-    
+
     def __init__(s):
         super(ServiceVSTRM, s).__init__()
         s.decoder = H264Decoder(
@@ -198,7 +198,7 @@ class ServiceVSTRM(ServiceBase):
     def h264_nal_encapsulate(s, is_idr, vstrm):
         slice_header = 0x25b804ff if is_idr else (0x21e003ff | ((s.frame_decode_num & 0xff) << 13))
         s.frame_decode_num += 1
-        
+
         nals = array.array('B')
         # TODO shouldn't really need this after the first IDR
         # TODO hardcoded for gamepad for now
@@ -212,32 +212,32 @@ class ServiceVSTRM(ServiceBase):
                 0x00, 0x00, 0x00, 0x01,
                 0x68, 0xee, 0x06, 0x0c, 0xe8
             ])
-        
+
         # begin slice nalu
         nals.extend([0x00, 0x00, 0x00, 0x01])
         nals.extend([(slice_header >> 24) & 0xff,
                      (slice_header >> 16) & 0xff,
                      (slice_header >>  8) & 0xff,
                       slice_header & 0xff])
-        
+
         # add escape codes
         nals.extend(vstrm[:2])
         for i in xrange(2, len(vstrm)):
             if vstrm[i] <= 3 and nals[-2] == 0 and nals[-1] == 0:
                 nals.extend([3])
             nals.extend([vstrm[i]])
-        
+
         return nals
 
     def update(s, packet):
         h = s.header.parse(packet)
         is_idr = s.packet_is_idr(packet)
-        
+
         seq_ok = s.update_seq_id(h.seq_id)
 
         if not seq_ok:
             s.is_streaming = False
-        
+
         if h.frame_begin:
             s.frame = array.array('B')
             if s.is_streaming == False:
@@ -247,9 +247,9 @@ class ServiceVSTRM(ServiceBase):
                     # request a new IDR frame
                     WII_MSG_S.sendto('\1\0\0\0', ('192.168.1.10', WII_PORT_MSG))
                     return
-        
+
         s.frame.fromstring(packet[16:])
-        
+
         if s.is_streaming and h.frame_end:
             # update surface
             nals = s.h264_nal_encapsulate(is_idr, s.frame)
@@ -268,9 +268,9 @@ class ServiceCMD(ServiceBase):
     PT_REQ_ACK  = 1
     PT_RESP     = 2
     PT_RESP_ACK = 3
-    
+
     CMD0_OK = 0
-    
+
     def __init__(s):
         s.header_cmd0 = construct.Struct('CMD0Header',
             construct.UBInt8('magic'),
@@ -399,9 +399,9 @@ service_handlers = {
 hid_seq_id = 0
 def hid_snd():
     global joystick, hid_seq_id
-    
+
     report = array.array('H', '\0\0' * 0x40)
-    
+
     button_mapping = {
         0 : 0x8000, # a
         1 : 0x4000, # b
@@ -430,7 +430,7 @@ def hid_snd():
         2 : 0x0080, # l
         5 : 0x0040  # r
     }
-    
+
     # 16bit LE @ 0 seq_id
     # seems to be ignored
     report[0] = hid_seq_id
@@ -501,7 +501,7 @@ def hid_snd():
             stick_mapping = { 0 : 0, 1 : 1, 3 : 2, 4 : 3 }
             report[3 + stick_mapping[i]] = scaled
     report[1] = (button_bits >> 8) | ((button_bits & 0xff) << 8)
-    
+
     # touchpanel crap @ 36 - 76
     byte_18 = 0
     byte_17 = 3
@@ -516,31 +516,31 @@ def hid_snd():
         x = scale_stick(point[0], 0, screen_x, 200, 3800)
         y = scale_stick(point[1], 0, screen_y, 200, 3800)
         z1 = 2000
-        
+
         for i in xrange(10):
             report[18 + i * 2 + 0] = 0x80 | x
             report[18 + i * 2 + 1] = 0x80 | y
-        
+
         report[18 + 0 * 2 + 0] |= ((z1 >> 0) & 7) << 12
         report[18 + 0 * 2 + 1] |= ((z1 >> 3) & 7) << 12
         report[18 + 1 * 2 + 0] |= ((z1 >> 6) & 7) << 12
         report[18 + 1 * 2 + 1] |= ((z1 >> 9) & 7) << 12
-    
+
     report[18 + 3 * 2 + 1] |= ((byte_17 >> 0) & 7) << 12
     report[18 + 4 * 2 + 0] |= ((byte_17 >> 3) & 7) << 12
     report[18 + 4 * 2 + 1] |= ((byte_17 >> 6) & 3) << 12
-    
+
     report[18 + 5 * 2 + 0] |= ((byte_9fd >> 0) & 7) << 12
     report[18 + 5 * 2 + 1] |= ((byte_9fd >> 3) & 7) << 12
     report[18 + 6 * 2 + 0] |= ((byte_9fd >> 6) & 3) << 12
-    
+
     report[18 + 7 * 2 + 0] |= ((umi_fw_rev >> 4) & 7) << 12
-    
+
     # TODO checkout what's up with | 4
     report[18 + 9 * 2 + 1] |= ((byte_19 & 2) | 4) << 12
-    
+
     # 8bit @ 80
-    
+
     report[0x3f] = 0xe000
     #print report.tostring().encode('hex')
     WII_HID_S.sendto(report, ('192.168.1.10', WII_PORT_HID))
@@ -563,10 +563,10 @@ while not done:
             hid_snd()
 
     rlist, wlist, xlist = select.select(service_handlers.keys(), (), (), 1)
-    
+
     if not rlist:
         continue
-    
+
     for sock in rlist:
         try:
             data = sock.recvfrom(2048)[0]
