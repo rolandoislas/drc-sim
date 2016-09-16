@@ -34,7 +34,7 @@ OUT_PORT_AUD = 50001
 
 # hack for now, replace with dhcp result
 WII_LOCAL_IP = '192.168.1.11'
-OUT_LOCAL_IP = '127.0.0.1'
+OUT_LOCAL_IP = '0.0.0.0'
 
 WII_MSG_S = udp_service(WII_LOCAL_IP, WII_PORT_MSG)
 WII_VID_S = udp_service(WII_LOCAL_IP, WII_PORT_VID)
@@ -544,7 +544,7 @@ def hid_snd():
     report[0x3f] = 0xe000
     #print report.tostring().encode('hex')
     WII_HID_S.sendto(report, ('192.168.1.10', WII_PORT_HID))
-    hid_seq_id += 1
+    #hid_seq_id += 1
 
 EVT_SEND_HID = pygame.USEREVENT
 pygame.time.set_timer(EVT_SEND_HID, int((1. / 180.) * 1000.))

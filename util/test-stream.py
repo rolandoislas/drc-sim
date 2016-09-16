@@ -2,12 +2,13 @@ import pygame
 import socket
 import sys
 
-IP = "127.0.0.1"
+IP = "0.0.0.0"
 VIDEO_PORT = 50000
 
 pygame.init()
 screen = pygame.display.set_mode((854, 480))
 pygame.display.set_caption("test-stream")
+clock = pygame.time.Clock()
 
 while True:
     for event in pygame.event.get():
@@ -28,3 +29,5 @@ while True:
     image = pygame.image.fromstring(imageBuffer, (854, 480), "RGB")
     screen.blit(image, (0, 0))
     pygame.display.flip()
+    clock.tick()
+    pygame.display.set_caption("test-stream - fps: " + str(round(clock.get_fps())))
