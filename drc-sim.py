@@ -24,20 +24,32 @@ def udp_service(ip, port):
     sock.bind((ip, port + service_addend(ip)))
     return sock
 
-PORT_MSG = 50010
-PORT_VID = 50020
-PORT_AUD = 50021
-PORT_HID = 50022
-PORT_CMD = 50023
+WII_PORT_MSG = 50010
+WII_PORT_VID = 50020
+WII_PORT_AUD = 50021
+WII_PORT_HID = 50022
+WII_PORT_CMD = 50023
+OUT_PORT_VID = 50000
+OUT_PORT_AUD = 50001
 
 # hack for now, replace with dhcp result
-LOCAL_IP = '192.168.1.11'
+WII_LOCAL_IP = '192.168.1.11'
+OUT_LOCAL_IP = '127.0.0.1'
 
-MSG_S = udp_service(LOCAL_IP, PORT_MSG)
-VID_S = udp_service(LOCAL_IP, PORT_VID)
-AUD_S = udp_service(LOCAL_IP, PORT_AUD)
-HID_S = udp_service(LOCAL_IP, PORT_HID)
-CMD_S = udp_service(LOCAL_IP, PORT_CMD)
+WII_MSG_S = udp_service(WII_LOCAL_IP, WII_PORT_MSG)
+WII_VID_S = udp_service(WII_LOCAL_IP, WII_PORT_VID)
+WII_AUD_S = udp_service(WII_LOCAL_IP, WII_PORT_AUD)
+WII_HID_S = udp_service(WII_LOCAL_IP, WII_PORT_HID)
+WII_CMD_S = udp_service(WII_LOCAL_IP, WII_PORT_CMD)
+
+
+def server(ip, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind((ip, port))
+    sock.listen(5)
+    return sock
+
+OUT_VID_S = server(OUT_LOCAL_IP, OUT_PORT_VID)
 
 class ServiceBase(object):
     def __init__(s):
@@ -222,7 +234,7 @@ class ServiceVSTRM(ServiceBase):
         is_idr = s.packet_is_idr(packet)
         
         seq_ok = s.update_seq_id(h.seq_id)
-        
+
         if not seq_ok:
             s.is_streaming = False
         
@@ -233,12 +245,13 @@ class ServiceVSTRM(ServiceBase):
                     s.is_streaming = True
                 else:
                     # request a new IDR frame
-                    MSG_S.sendto('\1\0\0\0', ('192.168.1.10', PORT_MSG))
+                    WII_MSG_S.sendto('\1\0\0\0', ('192.168.1.10', WII_PORT_MSG))
                     return
         
         s.frame.fromstring(packet[16:])
         
         if s.is_streaming and h.frame_end:
+            # update surface
             nals = s.h264_nal_encapsulate(is_idr, s.frame)
             s.decoder.display_frame(nals.tostring())
             # output fps
@@ -330,7 +343,7 @@ class ServiceCMD(ServiceBase):
                 seq_id = h.seq_id
             )
         )
-        CMD_S.sendto(ack, ('192.168.1.10', PORT_CMD))
+        WII_CMD_S.sendto(ack, ('192.168.1.10', WII_PORT_CMD))
 
     def send_request(s, h, data = ''):
         s.send_cmd(h, s.PT_REQ, data)
@@ -351,7 +364,7 @@ class ServiceCMD(ServiceBase):
         # compensate for the fact that data doesn't include cmd0 header
         if h.cmd_id == 0:
             h.payload_size += s.header_cmd0.sizeof()
-        CMD_S.sendto(s.header.build(h) + data, ('192.168.1.10', PORT_CMD))
+        WII_CMD_S.sendto(s.header.build(h) + data, ('192.168.1.10', WII_PORT_CMD))
 
     def update(s, packet):
         h = s.header.parse(packet)
@@ -369,11 +382,18 @@ class ServiceNOP(ServiceBase):
     def update(s, packet):
         pass
 
+class ServiceIMGSTRM(ServiceBase):
+    def update(s, packet):
+        # output surface image
+        client, address = OUT_VID_S.accept()
+        client.sendall(pygame.image.tostring(pygame.display.get_surface(), "RGB", False))
+
 service_handlers = {
-    MSG_S : ServiceMSG(),
-    VID_S : ServiceVSTRM(),
-    AUD_S : ServiceASTRM(),
-    CMD_S : ServiceCMD()
+    WII_MSG_S : ServiceMSG(),
+    WII_VID_S : ServiceVSTRM(),
+    WII_AUD_S : ServiceASTRM(),
+    WII_CMD_S : ServiceCMD(),
+    OUT_VID_S : ServiceIMGSTRM()
 }
 
 hid_seq_id = 0
@@ -523,7 +543,7 @@ def hid_snd():
     
     report[0x3f] = 0xe000
     #print report.tostring().encode('hex')
-    HID_S.sendto(report, ('192.168.1.10', PORT_HID))
+    WII_HID_S.sendto(report, ('192.168.1.10', WII_PORT_HID))
     hid_seq_id += 1
 
 EVT_SEND_HID = pygame.USEREVENT
@@ -535,20 +555,24 @@ while not done:
             done = True
         elif event.type == pygame.VIDEORESIZE:
             pygame.display.set_mode(event.size, pygame.RESIZABLE)
-            service_handlers[VID_S].resize_output(event.size)
+            service_handlers[WII_VID_S].resize_output(event.size)
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_BACKSLASH:
-                MSG_S.sendto('\1\0\0\0', ('192.168.1.10', PORT_MSG))
+                WII_MSG_S.sendto('\1\0\0\0', ('192.168.1.10', WII_PORT_MSG))
         elif event.type == EVT_SEND_HID:
             hid_snd()
-    
+
     rlist, wlist, xlist = select.select(service_handlers.keys(), (), (), 1)
     
     if not rlist:
         continue
     
     for sock in rlist:
-        service_handlers[sock].update(sock.recvfrom(2048)[0])
+        try:
+            data = sock.recvfrom(2048)[0]
+        except:
+            data = sock
+        service_handlers[sock].update(data)
 
 for s in service_handlers.itervalues():
     s.close()
