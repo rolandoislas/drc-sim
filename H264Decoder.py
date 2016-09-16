@@ -1,5 +1,6 @@
 from cffi import FFI
 import pygame
+clock = pygame.time.Clock()
 
 # TODO static alloc in_data and make interface for reading/writing directly to it
 #   remove array.array usage of calling code
@@ -142,3 +143,5 @@ class H264Decoder:
                 'RGB')
             pygame.display.get_surface().blit(surface, (0, 0))
             pygame.display.flip()
+        clock.tick()
+    	pygame.display.set_caption("drc-sim - fps: " + str(round(clock.get_fps())))
