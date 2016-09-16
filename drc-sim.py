@@ -11,6 +11,7 @@ pygame.init()
 pygame.display.set_mode([854, 480], pygame.RESIZABLE)
 pygame.display.set_caption("drc-sim")
 done = False
+clock = pygame.time.Clock()
 
 def service_addend(ip):
     if int(ip.split('.')[3]) == 10:
@@ -240,6 +241,9 @@ class ServiceVSTRM(ServiceBase):
         if s.is_streaming and h.frame_end:
             nals = s.h264_nal_encapsulate(is_idr, s.frame)
             s.decoder.display_frame(nals.tostring())
+            # output fps
+            clock.tick()
+            pygame.display.set_caption("drc-sim - fps: " + str(round(clock.get_fps())))
 
     def resize_output(s, (x, y)):
         d = s.dimensions['gamepad']
