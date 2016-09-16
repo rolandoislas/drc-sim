@@ -144,4 +144,4 @@ class H264Decoder:
             pygame.display.get_surface().blit(surface, (0, 0))
             pygame.display.flip()
         clock.tick()
-    	pygame.display.set_caption("drc-sim - fps: " + str(round(clock.get_fps())))
+        pygame.display.set_caption("drc-sim - fps: " + str(round(clock.get_fps())))

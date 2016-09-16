@@ -415,45 +415,45 @@ def hid_snd():
     keys = pygame.key.get_pressed()
     # Check buttons
     if keys[pygame.K_SPACE]:
-    	button_bits |= button_mapping[0]
+        button_bits |= button_mapping[0]
     if keys[pygame.K_e]:
-    	button_bits |= button_mapping[1]
+        button_bits |= button_mapping[1]
     if keys[pygame.K_d]:
-    	button_bits |= button_mapping[2]
+        button_bits |= button_mapping[2]
     if keys[pygame.K_f]:
-    	button_bits |= button_mapping[3]
+        button_bits |= button_mapping[3]
     if keys[pygame.K_q]:
-    	button_bits |= button_mapping[4]
+        button_bits |= button_mapping[4]
     if keys[pygame.K_r]:
-    	button_bits |= button_mapping[5]
+        button_bits |= button_mapping[5]
     if keys[pygame.K_x]:
-    	button_bits |= button_mapping[6]
+        button_bits |= button_mapping[6]
     if keys[pygame.K_c]:
-    	button_bits |= button_mapping[7]
+        button_bits |= button_mapping[7]
     if keys[pygame.K_z]:
-    	button_bits |= button_mapping[8]
+        button_bits |= button_mapping[8]
     if keys[pygame.K_1]:
-    	button_bits |= trigger_mapping[2]
+        button_bits |= trigger_mapping[2]
     if keys[pygame.K_4]:
-    	button_bits |= trigger_mapping[5]
+        button_bits |= trigger_mapping[5]
     # Joysticks depressed
     if keys[pygame.K_t]:
-    	report[40] |= button_mapping[9]
+        report[40] |= button_mapping[9]
     if keys[pygame.K_g]:
-    	report[40] |= button_mapping[10]
+        report[40] |= button_mapping[10]
     # Check Movement
     if keys[pygame.K_RIGHT]:
-    	button_bits |= hat_mapping_x[1]
+        button_bits |= hat_mapping_x[1]
     elif keys[pygame.K_LEFT]:
-    	button_bits |= hat_mapping_x[-1]
+        button_bits |= hat_mapping_x[-1]
     else:
-    	button_bits |= hat_mapping_x[0]
+        button_bits |= hat_mapping_x[0]
     if keys[pygame.K_UP]:
-    	button_bits |= hat_mapping_y[1]
+        button_bits |= hat_mapping_y[1]
     elif keys[pygame.K_DOWN]:
-    	button_bits |= hat_mapping_y[-1]
+        button_bits |= hat_mapping_y[-1]
     else:
-    	button_bits |= hat_mapping_y[0]
+        button_bits |= hat_mapping_y[0]
     # 16bit LE array @ 6
     # LX, LY, RX, RY
     # 0: l stick l/r
