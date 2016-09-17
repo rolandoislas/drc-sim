@@ -4,8 +4,8 @@ import select
 import socket
 import array
 import pygame
-import time
 from H264Decoder import H264Decoder
+from control import controller
 
 pygame.init()
 pygame.display.set_mode([854, 480], pygame.RESIZABLE)
@@ -398,86 +398,18 @@ service_handlers = {
 
 hid_seq_id = 0
 def hid_snd():
-    global joystick, hid_seq_id
+    global hid_seq_id
 
     report = array.array('H', '\0\0' * 0x40)
-
-    button_mapping = {
-        0 : 0x8000, # a
-        1 : 0x4000, # b
-        2 : 0x2000, # x
-        3 : 0x1000, # y
-        4 : 0x0020, # l
-        5 : 0x0010, # r
-        6 : 0x0004, # back (minus)
-        7 : 0x0008, # start (plus)
-        8 : 0x0002, # xbox (home)
-        # extra buttons
-        9 : 0x08, # l3
-       10 : 0x04  # r3
-    }
-    hat_mapping_x = {
-        0 : 0x000,
-       -1 : 0x800, # l
-        1 : 0x400, # r
-    }
-    hat_mapping_y = {
-        0 : 0x000,
-       -1 : 0x100, # d
-        1 : 0x200, # u
-    }
-    trigger_mapping = {
-        2 : 0x0080, # l
-        5 : 0x0040  # r
-    }
 
     # 16bit LE @ 0 seq_id
     # seems to be ignored
     report[0] = hid_seq_id
     # 16bit @ 2
     button_bits = 0
-    keys = pygame.key.get_pressed()
-    # Check buttons
-    if keys[pygame.K_SPACE]:
-        button_bits |= button_mapping[0]
-    if keys[pygame.K_e]:
-        button_bits |= button_mapping[1]
-    if keys[pygame.K_d]:
-        button_bits |= button_mapping[2]
-    if keys[pygame.K_f]:
-        button_bits |= button_mapping[3]
-    if keys[pygame.K_q]:
-        button_bits |= button_mapping[4]
-    if keys[pygame.K_r]:
-        button_bits |= button_mapping[5]
-    if keys[pygame.K_x]:
-        button_bits |= button_mapping[6]
-    if keys[pygame.K_c]:
-        button_bits |= button_mapping[7]
-    if keys[pygame.K_z]:
-        button_bits |= button_mapping[8]
-    if keys[pygame.K_1]:
-        button_bits |= trigger_mapping[2]
-    if keys[pygame.K_4]:
-        button_bits |= trigger_mapping[5]
-    # Joysticks depressed
-    if keys[pygame.K_t]:
-        report[40] |= button_mapping[9]
-    if keys[pygame.K_g]:
-        report[40] |= button_mapping[10]
-    # Check Movement
-    if keys[pygame.K_RIGHT]:
-        button_bits |= hat_mapping_x[1]
-    elif keys[pygame.K_LEFT]:
-        button_bits |= hat_mapping_x[-1]
-    else:
-        button_bits |= hat_mapping_x[0]
-    if keys[pygame.K_UP]:
-        button_bits |= hat_mapping_y[1]
-    elif keys[pygame.K_DOWN]:
-        button_bits |= hat_mapping_y[-1]
-    else:
-        button_bits |= hat_mapping_y[0]
+    # Get input
+    button_bits |= controller.get_input()
+    report[40] |= controller.get_l3_r3_input()
     # 16bit LE array @ 6
     # LX, LY, RX, RY
     # 0: l stick l/r
