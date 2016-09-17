@@ -10,7 +10,6 @@ BUTTON_ZR = 0x0040
 BUTTON_MINUS = 0x0004
 BUTTON_PLUS = 0x0008
 BUTTON_HOME = 0x0002
-# TODO re-implement joystick buttons
 BUTTON_L3 = 0x08
 BUTTON_R3 = 0x04
 # Hat

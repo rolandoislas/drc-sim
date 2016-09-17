@@ -32,12 +32,13 @@ WII_PORT_VID = 50020
 WII_PORT_AUD = 50021
 WII_PORT_HID = 50022
 WII_PORT_CMD = 50023
-OUT_PORT_VID = 50000
-OUT_PORT_AUD = 50001
+SERVER_PORT_VID = 50000
+SERVER_PORT_AUD = 50001
+SERVER_PORT_CMD = 50002
 
 # hack for now, replace with dhcp result
 WII_LOCAL_IP = '192.168.1.11'
-OUT_LOCAL_IP = '0.0.0.0'
+SERVER_IP = '0.0.0.0'
 
 WII_MSG_S = udp_service(WII_LOCAL_IP, WII_PORT_MSG)
 WII_VID_S = udp_service(WII_LOCAL_IP, WII_PORT_VID)
@@ -48,11 +49,13 @@ WII_CMD_S = udp_service(WII_LOCAL_IP, WII_PORT_CMD)
 
 def server(ip, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((ip, port))
     sock.listen(5)
     return sock
 
-OUT_VID_S = server(OUT_LOCAL_IP, OUT_PORT_VID)
+SERVER_VID_S = server(SERVER_IP, SERVER_PORT_VID)
+SERVER_CMD_S = server(SERVER_IP, SERVER_PORT_CMD)
 
 
 class ServiceBase(object):
@@ -440,12 +443,18 @@ class ServiceNOP(ServiceBase):
 
 
 class ServiceIMGSTRM(ServiceBase):
-    # noinspection PyUnusedLocal
-    @staticmethod
-    def update(packet):
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def update(self, packet):
         # output surface image
-        client, address = OUT_VID_S.accept()
-        client.sendall(pygame.image.tostring(pygame.display.get_surface(), "RGB", False))
+        client, address = SERVER_VID_S.accept()
+        image_buffer = pygame.image.tostring(pygame.display.get_surface(), "RGB", False)
+        print address
+        client.sendall(image_buffer)
+
+
+class ServiceCNTRL(ServiceBase):
+    def update(self, packet):
+        pass
 
 
 service_handlers = {
@@ -453,7 +462,8 @@ service_handlers = {
     WII_VID_S: ServiceVSTRM(),
     WII_AUD_S: ServiceASTRM(),
     WII_CMD_S: ServiceCMD(),
-    OUT_VID_S: ServiceIMGSTRM()
+    SERVER_VID_S: ServiceIMGSTRM(),
+    SERVER_CMD_S: ServiceCNTRL()
 }
 
 hid_seq_id = 0
