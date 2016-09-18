@@ -4,10 +4,9 @@ import socket
 import sys
 
 from control import controller
+from data import constants
 
 IP = "0.0.0.0"
-VIDEO_PORT = 50000
-CMD_PORT = 50002
 
 
 def client(ip, port):
@@ -16,13 +15,14 @@ def client(ip, port):
     return sock
 
 
-VID_S = client(IP, VIDEO_PORT)
-CMD_S = client(IP, CMD_PORT)
+VID_S = client(IP, constants.SERVER_PORT_VID)
+CMD_S = client(IP, constants.SERVER_PORT_CMD)
 
 pygame.init()
 screen = pygame.display.set_mode((854, 480))
 pygame.display.set_caption("test-stream")
 clock = pygame.time.Clock()
+input_time = 0
 
 
 def check_quit():
@@ -35,18 +35,15 @@ def update_screen():
     # Get data
     image_buffer = ""
     bytes_read = 0
-    VID_S.sendto("", (IP, VIDEO_PORT))
+    VID_S.send("0")
     while bytes_read < 1229760:
         data = VID_S.recv(1229760)
         if not data:
-            break
+            time.sleep(1)
+            return
         bytes_read += len(data)
         image_buffer += data
     # Convert to image
-    print str(len(image_buffer))
-    if len(image_buffer) == 0:
-        time.sleep(1)
-        return
     image = pygame.image.fromstring(image_buffer, (854, 480), "RGB")
     screen.blit(image, (0, 0))
     pygame.display.flip()
@@ -54,13 +51,21 @@ def update_screen():
 
 def tick_clock():
     clock.tick()
-    pygame.display.set_caption("test-stream - fps: " + str(round(clock.get_fps())))
+    pygame.display.set_caption("drc-sim - fps: " + str(round(clock.get_fps())))
+
+
+def send_command(name, data):
+    CMD_S.send(name + "\n" + str(data) + "\n")
 
 
 def check_input():
-    buttonBytes = controller.get_input()
-    l3r3Bytes = controller.get_l3_r3_input()
-
+    buttonbytes = controller.get_input()
+    l3r3bytes = controller.get_l3_r3_input()
+    timestamp = time.time()
+    if buttonbytes > 0:
+        send_command("BUTTON", str(buttonbytes) + "-" + str(timestamp))
+    if l3r3bytes > 0:
+        send_command("L3R3", str(l3r3bytes) + "-" + str(timestamp))
 
 while True:
     check_quit()

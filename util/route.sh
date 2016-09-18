@@ -3,8 +3,8 @@
 wiiface="wlx687f747d2e59"
 
 # Normal NIC
-interface="eth0"
-ip="192.168.2.137"
+interface="enp2s0"
+ip="192.168.2.141"
 subnet="192.168.2.0/24" # subnet? terminology might be wrong
 gateway="192.168.2.1"
 

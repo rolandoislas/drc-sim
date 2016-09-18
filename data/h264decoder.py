@@ -4,10 +4,11 @@ import pygame
 # TODO static alloc in_data and make interface for reading/writing directly to it
 #   remove array.array usage of calling code
 
+
 class H264Decoder:
-    def __init_ffi(s):
-        s.ffi = FFI()
-        s.ffi.cdef('''
+    def __init_ffi(self):
+        self.ffi = FFI()
+        self.ffi.cdef('''
             // AVCODEC
             
             enum PixelFormat { PIX_FMT_YUV420P, PIX_FMT_RGB24, ... };
@@ -56,89 +57,89 @@ class H264Decoder:
             
             void sws_freeContext(struct SwsContext *c);
         ''')
-        s.ns = s.ffi.verify(source = '''
+        self.ns = self.ffi.verify(source='''
             #include <libavcodec/avcodec.h>
             #include <libswscale/swscale.h>
             ''', libraries=['avcodec', 'swscale'])
 
-    def __init_avcodec(s):
-        s.ns.avcodec_register_all()
+    def __init_avcodec(self):
+        self.ns.avcodec_register_all()
 
-        s.av_packet = s.ffi.new('struct AVPacket *')
-        s.ns.av_init_packet(s.av_packet)
+        self.av_packet = self.ffi.new('struct AVPacket *')
+        self.ns.av_init_packet(self.av_packet)
 
-        s.codec = s.ns.avcodec_find_decoder(s.ns.CODEC_ID_H264)
-        if not s.codec:
+        self.codec = self.ns.avcodec_find_decoder(self.ns.CODEC_ID_H264)
+        if not self.codec:
             raise Exception('avcodec_alloc_context3')
-        s.context = s.ns.avcodec_alloc_context3(s.codec)
-        if not s.context:
+        self.context = self.ns.avcodec_alloc_context3(self.codec)
+        if not self.context:
             raise Exception('avcodec_alloc_context3')
-        if s.ns.avcodec_open2(s.context, s.codec, s.ffi.NULL) < 0:
+        if self.ns.avcodec_open2(self.context, self.codec, self.ffi.NULL) < 0:
             raise Exception('avcodec_open2')
-        s.frame = s.ns.avcodec_alloc_frame()
-        if not s.frame:
+        self.frame = self.ns.avcodec_alloc_frame()
+        if not self.frame:
             raise Exception('avcodec_alloc_frame')
-        s.got_frame = s.ffi.new('int *')
-        s.out_frame = s.ns.avcodec_alloc_frame()
+        self.got_frame = self.ffi.new('int *')
+        self.out_frame = self.ns.avcodec_alloc_frame()
 
-    def __init__(s, (in_x, in_y), (out_x, out_y)):
-        s.sws_context = None
-        s.__init_ffi()
-        s.__init_avcodec()
-        s.update_dimensions((in_x, in_y), (out_x, out_y))
+    def __init__(self, (in_x, in_y), (out_x, out_y)):
+        self.in_x, self.in_y, self.out_x, self.out_y, self.out_buffer, self.sws_context = \
+            in_x, in_y, out_y, out_x, None, None
+        self.__init_ffi()
+        self.__init_avcodec()
+        self.update_dimensions((in_x, in_y), (out_x, out_y))
 
-    def close(s):
-        s.ns.sws_freeContext(s.sws_context)
-        s.ns.av_free(s.out_frame)
+    def close(self):
+        self.ns.sws_freeContext(self.sws_context)
+        self.ns.av_free(self.out_frame)
         
-        s.ns.avcodec_close(s.context)
-        s.ns.av_free(s.context)
-        s.ns.av_free(s.frame)
+        self.ns.avcodec_close(self.context)
+        self.ns.av_free(self.context)
+        self.ns.av_free(self.frame)
 
-    def update_dimensions(s, (in_x, in_y), (out_x, out_y)):
-        s.in_x, s.in_y = in_x, in_y
-        s.out_x, s.out_y = out_x, out_y
+    def update_dimensions(self, (in_x, in_y), (out_x, out_y)):
+        self.in_x, self.in_y = in_x, in_y
+        self.out_x, self.out_y = out_x, out_y
         
-        if s.sws_context != None:
-            s.ns.sws_freeContext(s.sws_context)
-        s.sws_context = s.ns.sws_getContext(
-            s.in_x, s.in_y, s.ns.PIX_FMT_YUV420P,
-            s.out_x, s.out_y, s.ns.PIX_FMT_RGB24,
-            s.ns.SWS_FAST_BILINEAR,
-            s.ffi.NULL,
-            s.ffi.NULL, s.ffi.NULL)
+        if self.sws_context is not None:
+            self.ns.sws_freeContext(self.sws_context)
+        self.sws_context = self.ns.sws_getContext(
+            self.in_x, self.in_y, self.ns.PIX_FMT_YUV420P,
+            self.out_x, self.out_y, self.ns.PIX_FMT_RGB24,
+            self.ns.SWS_FAST_BILINEAR,
+            self.ffi.NULL,
+            self.ffi.NULL, self.ffi.NULL)
         
-        bytes_req = s.ns.avpicture_get_size(s.ns.PIX_FMT_RGB24, s.out_x, s.out_y)
-        s.out_buffer = s.ffi.new('uint8_t [%i]' % bytes_req)
-        s.ns.avpicture_fill(
-            s.ffi.cast('struct AVPicture *', s.out_frame),
-            s.out_buffer,
-            s.ns.PIX_FMT_RGB24,
-            s.out_x, s.out_y)
+        bytes_req = self.ns.avpicture_get_size(self.ns.PIX_FMT_RGB24, self.out_x, self.out_y)
+        self.out_buffer = self.ffi.new('uint8_t [%i]' % bytes_req)
+        self.ns.avpicture_fill(
+            self.ffi.cast('struct AVPicture *', self.out_frame),
+            self.out_buffer,
+            self.ns.PIX_FMT_RGB24,
+            self.out_x, self.out_y)
 
-    def display_frame(s, encoded_nalu):
-        in_data = s.ffi.new('uint8_t []', encoded_nalu)
-        s.av_packet.data = in_data
-        s.av_packet.size = len(encoded_nalu)
+    def display_frame(self, encoded_nalu):
+        in_data = self.ffi.new('uint8_t []', encoded_nalu)
+        self.av_packet.data = in_data
+        self.av_packet.size = len(encoded_nalu)
         
-        length = s.ns.avcodec_decode_video2(s.context, s.frame, s.got_frame, s.av_packet)
+        length = self.ns.avcodec_decode_video2(self.context, self.frame, self.got_frame, self.av_packet)
         if length < 0:
             raise Exception('avcodec_decode_video2')
-        elif length != s.av_packet.size:
+        elif length != self.av_packet.size:
             raise Exception('expected to decode a single complete frame')
-        elif s.got_frame[0]:
-            #print 'keyframe:', s.frame.key_frame
+        elif self.got_frame[0]:
+            # print 'keyframe:', s.frame.key_frame
             # convert from YUV to RGB
-            out_height = s.ns.sws_scale(
-                s.sws_context,
-                s.frame.data, s.frame.linesize,
-                0, s.in_y,
-                s.out_frame.data, s.out_frame.linesize)
-            
-            #print out_height
+            self.ns.sws_scale(
+                self.sws_context,
+                self.frame.data, self.frame.linesize,
+                0, self.in_y,
+                self.out_frame.data, self.out_frame.linesize)
+
             surface = pygame.image.frombuffer(
-                s.ffi.buffer(s.out_frame.data[0], s.out_frame.linesize[0] * s.out_y),
-                (s.out_x, s.out_y),
+                self.ffi.buffer(self.out_frame.data[0], self.out_frame.linesize[0] * self.out_y),
+                (self.out_x, self.out_y),
                 'RGB')
             pygame.display.get_surface().blit(surface, (0, 0))
             pygame.display.flip()
