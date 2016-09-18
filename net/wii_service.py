@@ -1,12 +1,10 @@
 import array
 import pyaudio
-import pygame
 
 import construct
 
 from data.h264decoder import H264Decoder
 
-clock = pygame.time.Clock()
 WII_CMD_S, WII_PORT_CMD, WII_MSG_S, WII_PORT_MSG = None, None, None, None
 
 
@@ -126,16 +124,9 @@ class ServiceASTRM(ServiceBase):
 
 
 class ServiceVSTRM(ServiceBase):
-    dimensions = {
-        'camera': (640, 480),
-        'gamepad': (854, 480)
-    }
-
     def __init__(self):
         super(ServiceVSTRM, self).__init__()
-        self.decoder = H264Decoder(
-            self.dimensions['gamepad'],
-            pygame.display.get_surface().get_size())
+        self.decoder = H264Decoder()
         self.header = construct.BitStruct('VSTRMHeader',
                                           construct.Nibble('magic'),
                                           construct.BitField('packet_type', 2),
@@ -151,6 +142,7 @@ class ServiceVSTRM(ServiceBase):
         self.frame = array.array('B')
         self.is_streaming = False
         self.frame_decode_num = 0
+        self.image_buffer = None
 
     def close(self):
         self.decoder.close()
@@ -215,18 +207,11 @@ class ServiceVSTRM(ServiceBase):
         self.frame.fromstring(packet[16:])
 
         if self.is_streaming and h.frame_end:
-            # update surface
+            # update image
             nals = self.h264_nal_encapsulate(is_idr, self.frame)
-            self.decoder.display_frame(nals.tostring())
-            # output fps
-            clock.tick()
-            pygame.display.set_caption("drc-sim - fps: " + str(round(clock.get_fps())))
+            self.image_buffer = self.decoder.get_image_buffer(nals.tostring())
 
-    # noinspection PyUnusedLocal
-    def resize_output(self, (x, y)):
-        d = self.dimensions['gamepad']
-        fit = pygame.Rect((0, 0), d).fit(pygame.display.get_surface().get_rect())
-        self.decoder.update_dimensions(d, fit.size)
+ServiceVSTRM = ServiceVSTRM()
 
 
 class ServiceCMD(ServiceBase):

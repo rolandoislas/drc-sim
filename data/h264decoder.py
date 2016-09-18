@@ -3,6 +3,7 @@ import pygame
 
 # TODO static alloc in_data and make interface for reading/writing directly to it
 #   remove array.array usage of calling code
+from data import constants
 
 
 class H264Decoder:
@@ -82,12 +83,11 @@ class H264Decoder:
         self.got_frame = self.ffi.new('int *')
         self.out_frame = self.ns.avcodec_alloc_frame()
 
-    def __init__(self, (in_x, in_y), (out_x, out_y)):
-        self.in_x, self.in_y, self.out_x, self.out_y, self.out_buffer, self.sws_context = \
-            in_x, in_y, out_y, out_x, None, None
+    def __init__(self):
+        self.out_buffer, self.sws_context = None, None
         self.__init_ffi()
         self.__init_avcodec()
-        self.update_dimensions((in_x, in_y), (out_x, out_y))
+        self.update_dimensions()
 
     def close(self):
         self.ns.sws_freeContext(self.sws_context)
@@ -97,28 +97,26 @@ class H264Decoder:
         self.ns.av_free(self.context)
         self.ns.av_free(self.frame)
 
-    def update_dimensions(self, (in_x, in_y), (out_x, out_y)):
-        self.in_x, self.in_y = in_x, in_y
-        self.out_x, self.out_y = out_x, out_y
-        
+    def update_dimensions(self):
         if self.sws_context is not None:
             self.ns.sws_freeContext(self.sws_context)
         self.sws_context = self.ns.sws_getContext(
-            self.in_x, self.in_y, self.ns.PIX_FMT_YUV420P,
-            self.out_x, self.out_y, self.ns.PIX_FMT_RGB24,
+            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, self.ns.PIX_FMT_YUV420P,
+            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, self.ns.PIX_FMT_RGB24,
             self.ns.SWS_FAST_BILINEAR,
             self.ffi.NULL,
             self.ffi.NULL, self.ffi.NULL)
         
-        bytes_req = self.ns.avpicture_get_size(self.ns.PIX_FMT_RGB24, self.out_x, self.out_y)
+        bytes_req = self.ns.avpicture_get_size(self.ns.PIX_FMT_RGB24, constants.WII_VIDEO_WIDTH,
+                                               constants.WII_VIDEO_HEIGHT)
         self.out_buffer = self.ffi.new('uint8_t [%i]' % bytes_req)
         self.ns.avpicture_fill(
             self.ffi.cast('struct AVPicture *', self.out_frame),
             self.out_buffer,
             self.ns.PIX_FMT_RGB24,
-            self.out_x, self.out_y)
+            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT)
 
-    def display_frame(self, encoded_nalu):
+    def get_image_buffer(self, encoded_nalu):
         in_data = self.ffi.new('uint8_t []', encoded_nalu)
         self.av_packet.data = in_data
         self.av_packet.size = len(encoded_nalu)
@@ -134,12 +132,10 @@ class H264Decoder:
             self.ns.sws_scale(
                 self.sws_context,
                 self.frame.data, self.frame.linesize,
-                0, self.in_y,
+                0, constants.WII_VIDEO_HEIGHT,
                 self.out_frame.data, self.out_frame.linesize)
 
-            surface = pygame.image.frombuffer(
-                self.ffi.buffer(self.out_frame.data[0], self.out_frame.linesize[0] * self.out_y),
-                (self.out_x, self.out_y),
-                'RGB')
-            pygame.display.get_surface().blit(surface, (0, 0))
-            pygame.display.flip()
+            image_buffer = \
+                self.ffi.buffer(self.out_frame.data[0], self.out_frame.linesize[0] * constants.WII_VIDEO_HEIGHT)
+            return image_buffer
+

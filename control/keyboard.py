@@ -3,7 +3,7 @@ import pygame
 from control import buttons
 
 
-def get_input():
+def get_button_input():
     keys = pygame.key.get_pressed()
     button_bits = 0
     # Check buttons
@@ -53,3 +53,15 @@ def get_l3_r3_input():
     if keys[pygame.K_g]:
         button_bits |= buttons.BUTTON_R3
     return button_bits
+
+
+def get_joystick_input(joystick_id):
+    return 0  # TODO get origin based on some mouse implementation - determine which joystick and direction from id
+
+
+def get_touch_input():
+    if not pygame.mouse.get_pressed()[0]:
+        return (-1, -1), (-1, -1)
+    point = pygame.mouse.get_pos()
+    screen = pygame.display.get_surface().get_size()
+    return point, screen

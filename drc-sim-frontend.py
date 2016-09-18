@@ -59,7 +59,7 @@ def send_command(name, data):
 
 
 def check_input():
-    buttonbytes = controller.get_input()
+    buttonbytes = controller.get_button_input()
     l3r3bytes = controller.get_l3_r3_input()
     timestamp = time.time()
     if buttonbytes > 0:
