@@ -1,9 +1,8 @@
 from cffi import FFI
-import pygame
+from data import constants
 
 # TODO static alloc in_data and make interface for reading/writing directly to it
 #   remove array.array usage of calling code
-from data import constants
 
 
 class H264Decoder:
@@ -138,4 +137,3 @@ class H264Decoder:
             image_buffer = \
                 self.ffi.buffer(self.out_frame.data[0], self.out_frame.linesize[0] * constants.WII_VIDEO_HEIGHT)
             return image_buffer
-

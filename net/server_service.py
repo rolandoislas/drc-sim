@@ -11,7 +11,8 @@ class ServiceVID:
     @staticmethod
     def update(sock, data):
         # output surface image
-        sock.sendall(wii_service.ServiceVSTRM.image_buffer)
+        image_buffer = wii_service.ServiceVSTRM.image_buffer
+        sock.sendall(str(len(image_buffer)) + "\n" + str(image_buffer))
 
 
 class ServiceCMD:
@@ -80,3 +81,19 @@ class ServiceCMD:
         return False
 
 ServiceCMD = ServiceCMD()
+
+
+class ServiceAUD:
+    def __init__(self):
+        pass
+
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def update(sock, data):
+        sample = wii_service.ServiceASTRM.sample
+        # Timestamp check
+        if float(data) == sample[1]:
+            sock.sendall("1\n\x00")
+            return
+        sample_dump = sample[0] + "----" + bytes(sample[1])
+        sock.sendall(str(len(sample_dump)) + "\n" + sample_dump)

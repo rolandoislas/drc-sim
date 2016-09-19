@@ -1,15 +1,15 @@
 import array
 import select
 import socket
-
-import datetime
-import psutil
 import time
+
+import psutil
 
 from control import controller
 from data import constants
 from net import server_service
 from net import wii_service
+
 
 def service_addend(ip):
     if int(ip.split('.')[3]) == 10:
@@ -42,18 +42,20 @@ def server(ip, port):
     return sock
 
 SERVER_VID_S = server(SERVER_IP, constants.SERVER_PORT_VID)
+SERVER_AUD_S = server(SERVER_IP, constants.SERVER_PORT_AUD)
 SERVER_CMD_S = server(SERVER_IP, constants.SERVER_PORT_CMD)
 
 wii_service.init(WII_CMD_S, constants.WII_PORT_CMD, WII_MSG_S, constants.WII_PORT_MSG)
 service_handlers = {
     WII_MSG_S: wii_service.ServiceMSG(),
     WII_VID_S: wii_service.ServiceVSTRM,
-    WII_AUD_S: wii_service.ServiceASTRM(),
+    WII_AUD_S: wii_service.ServiceASTRM,
     WII_CMD_S: wii_service.ServiceCMD(),
 }
 
 server_handlers = {
     SERVER_VID_S: server_service.ServiceVID(),
+    SERVER_AUD_S: server_service.ServiceAUD(),
     SERVER_CMD_S: server_service.ServiceCMD
 }
 
@@ -128,7 +130,7 @@ def handle_sockets():
                 handle_client_socket(sock)
 
 
-# FIXME there might be a leak somewhere
+# FIXME there IS a leak in the audio service parse_audio_stream()
 def check_memory():
     if psutil.virtual_memory().percent >= 85:
         raise MemoryError("Memory usage is high. Quitting.")

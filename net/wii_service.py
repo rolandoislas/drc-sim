@@ -1,5 +1,5 @@
 import array
-import pyaudio
+import time
 
 import construct
 
@@ -60,33 +60,23 @@ class ServiceASTRM(ServiceBase):
                                                         )
                                        )
         self.is_streaming = False
-        self.p = pyaudio.PyAudio()
-        self.stream = None
+        self.sample = None
 
         self.pa_num_bufs = 15
         self.pa_ring = [array.array('H', '\0' * 416 * 2)] * self.pa_num_bufs
         self.pa_wpos = self.pa_rpos = 0
 
     def close(self):
-        if self.stream is not None:
-            # hangs the process, dunno why
-            # s.stream.stop_stream()
-            self.stream.close()
-            self.stream = None
-        if self.p is not None:
-            self.p.terminate()
-            self.p = None
         self.is_streaming = False
 
-    # noinspection PyUnusedLocal
-    def __pa_callback(self, in_data, frame_count, time_info, status):
+    def parse_audio_stream(self):
         samples = self.pa_ring[self.pa_wpos]
         self.pa_wpos += 1
         self.pa_wpos %= self.pa_num_bufs
         samples.extend(self.pa_ring[self.pa_wpos])
         self.pa_wpos += 1
         self.pa_wpos %= self.pa_num_bufs
-        return samples, pyaudio.paContinue
+        return samples
 
     def update(self, packet):
         h = self.header.parse(packet)
@@ -108,19 +98,14 @@ class ServiceASTRM(ServiceBase):
             self.pa_rpos += 1
             self.pa_rpos %= self.pa_num_bufs
 
-            if self.is_streaming and not self.stream.is_active():
-                self.stream.close()
+            if self.is_streaming:
                 self.is_streaming = False
-
-            if not self.is_streaming:
-                self.stream = self.p.open(format=pyaudio.paInt16,
-                                          channels=2,
-                                          rate=48000,
-                                          output=True,
-                                          frames_per_buffer=416 * 2,
-                                          stream_callback=self.__pa_callback)
-                self.stream.start_stream()
+            else:
+                audio_bytes = self.parse_audio_stream()
+                self.sample = (audio_bytes.tostring(), time.time())
                 self.is_streaming = True
+
+ServiceASTRM = ServiceASTRM()
 
 
 class ServiceVSTRM(ServiceBase):
@@ -319,7 +304,7 @@ class ServiceCMD(ServiceBase):
         self.cmd0_handlers[h.id_primary][h.id_secondary](h, packet)
 
     def cmd1(self, h, packet):
-        print 'CMD1', packet[8:].encode('hex')
+        #print 'CMD1', packet[8:].encode('hex')
         self.send_response(h, '\x00\x16\x00\x19\x9e\x00\x00\x00\x40\x00\x40\x00\x00\x00\x01\xff')
 
     # noinspection PyUnusedLocal
