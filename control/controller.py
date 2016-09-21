@@ -1,5 +1,3 @@
-import sys
-
 from net import server_service
 
 try:

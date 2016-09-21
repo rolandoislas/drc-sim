@@ -1,11 +1,11 @@
 import array
-import time
 
 import construct
 
+from data import constants
 from data.h264decoder import H264Decoder
-
-WII_CMD_S, WII_PORT_CMD, WII_MSG_S, WII_PORT_MSG = None, None, None, None
+from net import server_service
+from net import sockets
 
 
 class ServiceBase(object):
@@ -60,7 +60,7 @@ class ServiceASTRM(ServiceBase):
                                                         )
                                        )
         self.is_streaming = False
-        self.sample = None
+        self.audio_bytes = None
 
         self.pa_num_bufs = 15
         self.pa_ring = [array.array('H', '\0' * 416 * 2)] * self.pa_num_bufs
@@ -101,11 +101,9 @@ class ServiceASTRM(ServiceBase):
             if self.is_streaming:
                 self.is_streaming = False
             else:
-                audio_bytes = self.parse_audio_stream()
-                self.sample = (audio_bytes.tostring(), time.time())
+                self.audio_bytes = self.parse_audio_stream().tostring()
+                server_service.ServiceAUD.broadcast(self.audio_bytes)
                 self.is_streaming = True
-
-ServiceASTRM = ServiceASTRM()
 
 
 class ServiceVSTRM(ServiceBase):
@@ -186,7 +184,7 @@ class ServiceVSTRM(ServiceBase):
                     self.is_streaming = True
                 else:
                     # request a new IDR frame
-                    WII_MSG_S.sendto('\1\0\0\0', ('192.168.1.10', WII_PORT_MSG))
+                    sockets.Sockets.WII_MSG_S.sendto('\1\0\0\0', ('192.168.1.10', constants.WII_PORT_MSG))
                     return
 
         self.frame.fromstring(packet[16:])
@@ -195,8 +193,7 @@ class ServiceVSTRM(ServiceBase):
             # update image
             nals = self.h264_nal_encapsulate(is_idr, self.frame)
             self.image_buffer = self.decoder.get_image_buffer(nals.tostring())
-
-ServiceVSTRM = ServiceVSTRM()
+            server_service.ServiceVID.broadcast(self.image_buffer)
 
 
 class ServiceCMD(ServiceBase):
@@ -303,8 +300,9 @@ class ServiceCMD(ServiceBase):
             return
         self.cmd0_handlers[h.id_primary][h.id_secondary](h, packet)
 
+    # noinspection PyUnusedLocal
     def cmd1(self, h, packet):
-        #print 'CMD1', packet[8:].encode('hex')
+        # print 'CMD1', packet[8:].encode('hex')
         self.send_response(h, '\x00\x16\x00\x19\x9e\x00\x00\x00\x40\x00\x40\x00\x00\x00\x01\xff')
 
     # noinspection PyUnusedLocal
@@ -321,7 +319,7 @@ class ServiceCMD(ServiceBase):
                 seq_id=h.seq_id
             )
         )
-        WII_CMD_S.sendto(ack, ('192.168.1.10', WII_PORT_CMD))
+        sockets.Sockets.WII_CMD_S.sendto(ack, ('192.168.1.10', constants.WII_PORT_CMD))
 
     def send_request(self, h, data=''):
         self.send_cmd(h, self.PT_REQ, data)
@@ -342,7 +340,7 @@ class ServiceCMD(ServiceBase):
         # compensate for the fact that data doesn't include cmd0 header
         if h.cmd_id == 0:
             h.payload_size += self.header_cmd0.sizeof()
-        WII_CMD_S.sendto(self.header.build(h) + data, ('192.168.1.10', WII_PORT_CMD))
+        sockets.Sockets.WII_CMD_S.sendto(self.header.build(h) + data, ('192.168.1.10', constants.WII_PORT_CMD))
 
     def update(self, packet):
         h = self.header.parse(packet)
@@ -362,11 +360,3 @@ class ServiceMSG(ServiceBase):
 class ServiceNOP(ServiceBase):
     def update(self, packet):
         pass
-
-
-def init(wii_cmd_s, wii_port_cmd, wii_msg_s, wii_port_msg):
-    global WII_CMD_S, WII_PORT_CMD, WII_MSG_S, WII_PORT_MSG
-    WII_CMD_S = wii_cmd_s
-    WII_PORT_CMD = wii_port_cmd
-    WII_MSG_S = wii_msg_s
-    WII_PORT_MSG = wii_port_msg

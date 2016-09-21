@@ -1,21 +1,35 @@
+import socket
 import time
 
-from net import wii_service
+from net import sockets
+from net.codec import Codec
 
 
 class ServiceVID:
+    __name__ = "ServiceVID"
+
     def __init__(self):
         pass
 
     # noinspection PyUnusedLocal
     @staticmethod
     def update(sock, data):
-        # output surface image
-        image_buffer = wii_service.ServiceVSTRM.image_buffer
-        sock.sendall(str(len(image_buffer)) + "\n" + str(image_buffer))
+        pass
+
+    @classmethod
+    def broadcast(cls, image_buffer):
+        data = Codec.encode(image_buffer)
+        for sock in sockets.Sockets.client_sockets.keys():
+            if sockets.Sockets.client_sockets[sock].__name__ == ServiceVID.__name__:
+                try:
+                    sock.sendall(data)
+                except socket.error:
+                    del sockets.Sockets.client_sockets[sock]
 
 
 class ServiceCMD:
+    __name__ = "ServiceCMD"
+
     def __init__(self):
         self.button_buffer, self.l3r3_buffer = (0, 0), (0, 0)
         self.joystick_buffer = ((0, 0, 0, 0), 0)
@@ -84,16 +98,22 @@ ServiceCMD = ServiceCMD()
 
 
 class ServiceAUD:
+    __name__ = "ServiceAUD"
+
     def __init__(self):
         pass
 
     # noinspection PyUnusedLocal
     @staticmethod
     def update(sock, data):
-        sample = wii_service.ServiceASTRM.sample
-        # Timestamp check
-        if float(data) == sample[1]:
-            sock.sendall("1\n\x00")
-            return
-        sample_dump = sample[0] + "----" + bytes(sample[1])
-        sock.sendall(str(len(sample_dump)) + "\n" + sample_dump)
+        pass
+
+    @classmethod
+    def broadcast(cls, audio_bytes):
+        data = Codec.encode(audio_bytes)
+        for sock in sockets.Sockets.client_sockets.keys():
+            if sockets.Sockets.client_sockets[sock].__name__ == ServiceAUD.__name__:
+                try:
+                    sock.sendall(data)
+                except socket.error:
+                    del sockets.Sockets.client_sockets[sock]
