@@ -11,6 +11,7 @@ from net.codec import Codec
 
 class Frontend:
     def __init__(self):
+        self.socket_time = time.time()
         self.IP = ""
         self.VID_S, self.AUD_S, self.CMD_S = None, None, None
         self.SOCKET_HANDLERS = {}
@@ -19,8 +20,6 @@ class Frontend:
         self.input_time = 0
         self.audio_bytes = None
         self.fps = []
-        self.video_stream_last_part = ""
-        self.audio_stream_last_part = ""
 
         pygame.init()
         self.screen = pygame.display.set_mode((constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT))
@@ -32,8 +31,8 @@ class Frontend:
                                         rate=48000,
                                         output=True,
                                         frames_per_buffer=416 * 2,
-                                        stream_callback=self.pyaudio_callback)
-        self.pya_stream.start_stream()
+                                        stream_callback=self.pyaudio_callback,
+                                        start=False)
 
         self.connect()
 
@@ -70,10 +69,14 @@ class Frontend:
                 bytes_to_get = 4096 if size == 0 or size - bytes_received >= 4096 else size - bytes_received
                 chunk = sock.recv(bytes_to_get)
             except socket.error, e:
-                # no data (non blocking socket) TODO timeout check
+                # no data (non blocking socket)
                 if e.errno == socket.errno.EAGAIN:
                     return ""
                 raise e
+            # Reconnect
+            if not chunk:
+                self.reconnect()
+                return
             # get the size of the data
             if size == 0:
                 try:
@@ -144,6 +147,8 @@ class Frontend:
             return
         if audio_bytes:
             self.audio_bytes = audio_bytes
+            if self.pya_stream.is_stopped():
+                self.pya_stream.start_stream()
 
     def run(self):
         self.check_quit()
@@ -152,8 +157,20 @@ class Frontend:
         self.check_input()
         self.display_fps()
 
+    def reconnect(self):
+        font = pygame.font.Font(None, 100)
+        text = "Reconnecting"
+        font.size(text)
+        font_surface = font.render(text, 0, (255, 255, 255), (0, 0, 0))
+        self.screen.blit(font_surface, (50, 50))
+        pygame.display.flip()
+        self.connect()
+
 
 frontend = Frontend()
 
 while True:
-    frontend.run()
+    try:
+        frontend.run()
+    except KeyboardInterrupt:
+        sys.exit()

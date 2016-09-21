@@ -1,5 +1,5 @@
 class Config:
-    compress_data = True
+    compress_data = False
 
     def __init__(self):
         pass

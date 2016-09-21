@@ -89,14 +89,7 @@ class Backend:
                 if sock in sockets.Sockets.client_sockets.keys():
                     self.handle_client_socket(sock)
 
-    # FIXME there IS a leak in the audio service parse_audio_stream()
-    @staticmethod
-    def check_memory():
-        if psutil.virtual_memory().percent >= 85:
-            raise MemoryError("Memory usage is high. Quitting.")
-
     def run(self):
-        self.check_memory()
         self.check_send_hid()
         self.handle_sockets()
 
