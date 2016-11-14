@@ -1,9 +1,7 @@
 import socket
 
 from src.common.net.codec import Codec
-from src.common.net.net_util import NetUtil
 from src.server.net import sockets
-from src.server.net.server.command import ServiceCMD
 
 
 class ServiceVID:
@@ -13,12 +11,7 @@ class ServiceVID:
         pass
 
     def update(self, packet, address):
-        self.check_register_command(packet, address)
-
-    @staticmethod
-    def check_register_command(packet, address):
-        if ServiceCMD.parse_command("REGISTER", packet) != "0":
-            sockets.Sockets.client_sockets[address] = ServiceVID
+        pass
 
     @classmethod
     def broadcast(cls, packet):

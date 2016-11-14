@@ -11,12 +11,7 @@ class ServiceAUD:
         pass
 
     def update(self, packet, address):
-        self.check_register_command(packet, address)
-
-    @staticmethod
-    def check_register_command(packet, address):
-        if ServiceCMD.parse_command("REGISTER", packet) != "0":
-            sockets.Sockets.client_sockets[address] = ServiceAUD
+        pass
 
     @classmethod
     def forward_packet(cls, packet):

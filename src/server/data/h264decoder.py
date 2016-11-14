@@ -1,5 +1,7 @@
 from cffi import FFI
-from data import constants
+
+from src.common.data import constants
+
 
 # TODO static alloc in_data and make interface for reading/writing directly to it
 #   remove array.array usage of calling code

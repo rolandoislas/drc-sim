@@ -1,6 +1,7 @@
 import pygame
 import select
 import socket
+import time
 
 from src.client.net.socket_handlers import SocketHandlers
 from src.client.net.sockets import Sockets
@@ -26,33 +27,32 @@ class Client:
         self.screen.blit(font_surface, (50, 50))
         pygame.display.flip()
         Sockets.connect()
+        SocketHandlers.create()
+        #time.sleep(5)
 
     @staticmethod
     def handle_media_packet(sock):
         data = NetUtil.recv(sock)
-        try:
-            SocketHandlers.media_handlers[sock].update(data)
-        except socket.error:
-            print e.strerror
+        SocketHandlers.media_handlers[sock].update(data)
 
     def check_sockets(self):
         rlist, wlist, xlist = select.select(SocketHandlers.media_handlers.keys() +
                                             SocketHandlers.command_handlers.keys(),
-                                            (), (), 1)
-        if rlist:
-            for sock in rlist:
-                # Media incoming socket
-                if sock in SocketHandlers.media_handlers.keys():
-                    self.handle_media_packet(sock)
-                # Command socket
-                if sock in SocketHandlers.command_handlers.keys():
-                    self.handle_command_packet(sock)
+                                            (), (), .00001)
+        try:
+            if rlist:
+                for sock in rlist:
+                    # Media incoming socket
+                    if sock in SocketHandlers.media_handlers.keys():
+                        self.handle_media_packet(sock)
+                    # Command socket
+                    if sock in SocketHandlers.command_handlers.keys():
+                        self.handle_command_packet(sock)
+        except socket.error:
+            self.reconnect()
 
     @staticmethod
     def handle_command_packet(sock):
         data = sock.recv(2048)
-        data = Codec.decode_command(data)
-        try:
-            SocketHandlers.command_handlers[sock].update(data)
-        except socket.error, e:
-            print e.strerror
+        command, data = Codec.decode_command(data)
+        SocketHandlers.command_handlers[sock].update(command, data)
