@@ -1,4 +1,4 @@
-from net import server_service
+import net.server.command
 
 try:
     # noinspection PyUnresolvedReferences
@@ -13,25 +13,25 @@ else:
 
     def get_button_input(server=False):
         if server:
-            return server_service.ServiceCMD.get_button_input()
+            return net.server.command.ServiceCMD.get_button_input()
         return keyboard.get_button_input()
 
 
     def get_l3_r3_input(server=False):
         if server:
-            return server_service.ServiceCMD.get_l3_r3_input()
+            return net.server.command.ServiceCMD.get_l3_r3_input()
         return keyboard.get_l3_r3_input()
 
 
     def get_joystick_input(joystick_id, server=False):
         if server:
-            return server_service.ServiceCMD.get_joystick_input(joystick_id)
+            return net.server.command.ServiceCMD.get_joystick_input(joystick_id)
         return keyboard.get_joystick_input(joystick_id)
 
 
     def get_touch_input(server=False):
         if server:
-            return server_service.ServiceCMD.get_touch_input()
+            return net.server.command.ServiceCMD.get_touch_input()
         return keyboard.get_touch_input()
 
 # The following get_####_input_report methods modify a passed report array

@@ -1,19 +1,15 @@
-import array
-import select
 import socket
+
+import array
+
 import time
 
-import psutil
-import sys
-
 from control import controller
-from data import constants
-from net import sockets
 from net import socket_handlers
+from net import sockets
 
 
-class Backend:
-
+class Gamepad:
     def __init__(self):
         self.hid_seq_id = 0
         self.hid_update_timestamp = 0
@@ -47,7 +43,7 @@ class Backend:
             self.send_hid_update()
 
     @staticmethod
-    def handle_wii_socket(sock):
+    def handle_wii_packet(sock):
         data = sock.recv(2048)
         try:
             socket_handlers.SocketHandlers.service_handlers[sock].update(data)
@@ -55,12 +51,12 @@ class Backend:
             print str(e) + str(e.errno)
 
     @staticmethod
-    def handle_server_socket(sock):
+    def add_client_socket(sock):
         client, address = sock.accept()
         sockets.Sockets.client_sockets[client] = socket_handlers.SocketHandlers.server_handlers[sock]
 
     @staticmethod
-    def handle_client_socket(sock):
+    def handle_client_packet(sock):
         try:
             data = sock.recv(2048)
         except socket.error:
@@ -81,28 +77,18 @@ class Backend:
             for sock in rlist:
                 # Wii socket
                 if sock in socket_handlers.SocketHandlers.service_handlers.keys():
-                    self.handle_wii_socket(sock)
+                    self.handle_wii_packet(sock)
                 # Server socket
                 if sock in socket_handlers.SocketHandlers.server_handlers.keys():
-                    self.handle_server_socket(sock)
+                    self.add_client_socket(sock)
                 # Client socket
                 if sock in sockets.Sockets.client_sockets.keys():
-                    self.handle_client_socket(sock)
+                    self.handle_client_packet(sock)
 
-    def run(self):
+    def update(self):
         self.check_send_hid()
         self.handle_sockets()
 
-    @staticmethod
-    def close():
+    def close(self):
         for s in socket_handlers.SocketHandlers.service_handlers.itervalues():
             s.close()
-
-backend = Backend()
-while True:
-    try:
-        backend.run()
-    except KeyboardInterrupt:
-        backend.close()
-        sys.exit()
-
