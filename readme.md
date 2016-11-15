@@ -9,7 +9,7 @@ drc-sim-keyboard by justjake: https://github.com/justjake/drc-sim-keyboard
 
 # Installation
 
-View justjake's [readme](https://github.com/justjake/drc-sim-keyboard/blob/master/README.md).
+View justjake'self [readme](https://github.com/justjake/drc-sim-keyboard/blob/master/README.md).
 
 # Controls
 

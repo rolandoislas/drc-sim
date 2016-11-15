@@ -17,22 +17,43 @@ class Client:
         pygame.display.set_caption("drc-sim")
 
     def update(self):
+        self.check_quit()
         self.check_sockets()
 
     def reconnect(self):
+        # close handlers
+        if SocketHandlers.media_handlers:
+            for handler in SocketHandlers.media_handlers.values():
+                print handler
+                handler.close()
+        # draw to surface
         font = pygame.font.Font(None, 100)
         text = "Reconnecting"
         font.size(text)
         font_surface = font.render(text, 0, (255, 255, 255), (0, 0, 0))
         self.screen.blit(font_surface, (50, 50))
         pygame.display.flip()
-        Sockets.connect()
-        SocketHandlers.create()
-        #time.sleep(5)
+        # Reconnect
+        connected = False
+        while not connected:
+            try:
+                Sockets.connect()
+                SocketHandlers.create()
+                connected = True
+            except socket.error:
+                start = time.time()
+                while time.time() - start < 5:
+                    self.check_quit()
 
     @staticmethod
-    def handle_media_packet(sock):
-        data = NetUtil.recv(sock)
+    def check_quit():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+    @staticmethod
+    def handle_media_packet(sock, buffer_id):
+        data = NetUtil.recv(sock, buffer_id)
         SocketHandlers.media_handlers[sock].update(data)
 
     def check_sockets(self):
@@ -42,9 +63,12 @@ class Client:
         try:
             if rlist:
                 for sock in rlist:
-                    # Media incoming socket
-                    if sock in SocketHandlers.media_handlers.keys():
-                        self.handle_media_packet(sock)
+                    # Video incoming socket
+                    if sock is SocketHandlers.media_handlers.keys()[0]:
+                        self.handle_media_packet(sock, "video")
+                    # Audio incoming socket
+                    if sock is SocketHandlers.media_handlers.keys()[1]:
+                        self.handle_media_packet(sock, "audio")
                     # Command socket
                     if sock in SocketHandlers.command_handlers.keys():
                         self.handle_command_packet(sock)

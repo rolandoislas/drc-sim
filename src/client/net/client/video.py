@@ -9,6 +9,9 @@ class VideoHandler:
     def __init__(self):
         pass
 
+    def close(self):
+        pass
+
     @staticmethod
     def update(data):
         size = (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT)
@@ -16,7 +19,11 @@ class VideoHandler:
             image_io = BytesIO(data)
             image = Image.open(image_io)
             surface = pygame.image.frombuffer(image.tobytes(), size, "RGB")
-        except (IOError, ValueError):
-            surface = pygame.image.frombuffer(data, size, "RGB")
+        except IOError:
+            try:
+                surface = pygame.image.frombuffer(data, size, "RGB")
+            except ValueError:
+                print "[VIDEO] Skipping frame"
+                return
         pygame.display.get_surface().blit(surface, (0, 0))
         pygame.display.flip()

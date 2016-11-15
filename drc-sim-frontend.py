@@ -12,22 +12,15 @@ class Frontend:
     def __init__(self):
         Controller.set_handler(Keyboard())  # TODO set based on cli arg
 
-        self.video = Client()
+        self.client = Client()
 
         Sockets.set_ip("")  # TODO set based on cli arg
-        Sockets.connect()
+        self.client.reconnect()
         SocketHandlers.create()
 
-    @staticmethod
-    def check_quit():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
-
     def run(self):
-        self.check_quit()
         Controller.check_input()
-        self.video.update()
+        self.client.update()
 
 
 frontend = Frontend()

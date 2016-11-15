@@ -1,5 +1,6 @@
 class Config:
-    input_delay = 0.3  # 3 low - 2 lan - 1 loopback
+    stream_audio = True
+    input_delay = 0.1  # 3 low - 2 lan - 1 loopback
     quality = 75  # 5 low - 75 lan - 100 loopback
     fps = 30  # 10 low - 30 lan - 60 loopback
 
@@ -17,3 +18,7 @@ class Config:
     @classmethod
     def get_input_delay(cls):
         return cls.input_delay
+
+    @classmethod
+    def do_stream_audio(cls):
+        return cls.stream_audio

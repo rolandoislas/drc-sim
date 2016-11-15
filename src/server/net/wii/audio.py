@@ -1,8 +1,11 @@
 import array
+import pyaudio
 
 import construct
 
 from src.common.data import constants
+from src.common.data.config import Config
+from src.server.net.server.audio import ServiceAUD
 from src.server.net.server.command import ServiceCMD
 from src.server.net.wii.base import ServiceBase
 
@@ -41,24 +44,9 @@ class AudioHandler(ServiceBase):
                                                         default=construct.Pass
                                                         )
                                        )
-        self.is_streaming = False
-        self.audio_bytes = None
-
-        self.pa_num_bufs = 15
-        self.pa_ring = [array.array('H', '\0' * 416 * 2)] * self.pa_num_bufs
-        self.pa_wpos = self.pa_rpos = 0
 
     def close(self):
-        self.is_streaming = False
-
-    def parse_audio_stream(self):
-        samples = self.pa_ring[self.pa_wpos]
-        self.pa_wpos += 1
-        self.pa_wpos %= self.pa_num_bufs
-        samples.extend(self.pa_ring[self.pa_wpos])
-        self.pa_wpos += 1
-        self.pa_wpos %= self.pa_num_bufs
-        return samples
+        pass
 
     def update(self, packet):
         h = self.header.parse(packet)
@@ -76,12 +64,5 @@ class AudioHandler(ServiceBase):
             if h.vibrate:
                 ServiceCMD.broadcast(constants.COMMAND_VIBRATE)
 
-            self.pa_ring[self.pa_rpos] = array.array('H', packet[8:])
-            self.pa_rpos += 1
-            self.pa_rpos %= self.pa_num_bufs
-
-            if self.is_streaming:
-                self.is_streaming = False
-            else:
-                self.audio_bytes = self.parse_audio_stream().tostring()
-                self.is_streaming = True
+            if Config.do_stream_audio():
+                ServiceAUD.broadcast(packet[8:])

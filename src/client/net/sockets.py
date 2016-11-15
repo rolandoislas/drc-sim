@@ -17,6 +17,7 @@ class Sockets:
     @staticmethod
     def client_tcp(ip, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.connect((ip, port))
         return sock
 
@@ -33,9 +34,7 @@ class Sockets:
             self.VID_S = self.client_tcp(self.SERVER_IP, constants.PORT_SERVER_VID)
             self.AUD_S = self.client_tcp(self.SERVER_IP, constants.PORT_SERVER_AUD)
         except socket.error, e:
-            print e.strerror
-            time.sleep(5)
-            self.connect()
+            raise e
 
     def set_ip(self, ip):
         self.SERVER_IP = ip

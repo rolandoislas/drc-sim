@@ -1,5 +1,8 @@
 import socket
 
+import time
+
+from src.common.net.codec import Codec
 from src.server.net import sockets
 from src.server.net.server.command import ServiceCMD
 
@@ -14,10 +17,11 @@ class ServiceAUD:
         pass
 
     @classmethod
-    def forward_packet(cls, packet):
-        for address in sockets.Sockets.client_sockets.keys():
-            if sockets.Sockets.client_sockets[address].__name__ == ServiceAUD.__name__:
+    def broadcast(cls, packet):
+        for sock in sockets.Sockets.client_sockets.keys():
+            if sockets.Sockets.client_sockets[sock].__name__ == ServiceAUD.__name__:
                 try:
-                    sockets.Sockets.SERVER_AUD_S.sendto(packet, address)
-                except socket.error:
-                    del sockets.Sockets.client_sockets[address]
+                    sock.sendall(Codec.encode(packet))
+                except socket.error, e:
+                    print e.strerror
+                    del sockets.Sockets.client_sockets[sock]
