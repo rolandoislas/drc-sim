@@ -5,6 +5,7 @@ import construct
 
 from src.common.data import constants
 from src.common.data.config import Config
+from src.server.data.config import ConfigServer
 from src.server.net.server.audio import ServiceAUD
 from src.server.net.server.command import ServiceCMD
 from src.server.net.wii.base import ServiceBase
@@ -64,5 +65,5 @@ class AudioHandler(ServiceBase):
             if h.vibrate:
                 ServiceCMD.broadcast(constants.COMMAND_VIBRATE)
 
-            if Config.do_stream_audio():
+            if ConfigServer.stream_audio:
                 ServiceAUD.broadcast(packet[8:])

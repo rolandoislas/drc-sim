@@ -9,6 +9,7 @@ import time
 
 from src.common.data import constants
 from src.common.data.config import Config
+from src.server.data.config import Config, ConfigServer
 from src.server.data.h264decoder import H264Decoder
 from src.server.net.server.video import ServiceVID
 from src.server.net.sockets import Sockets
@@ -103,14 +104,14 @@ class VideoHandler(ServiceBase):
             nals = self.h264_nal_encapsulate(is_idr, self.frame)
             image_buffer = self.decoder.get_image_buffer(nals.tostring())
             # Check fps limit
-            if Config.get_fps() < 60 and time.time() - self.last_sent_time < 1. / Config.get_fps():
+            if ConfigServer.fps < 60 and time.time() - self.last_sent_time < 1. / ConfigServer.fps:
                 return
             # Reduce quality at the expense of CPU
-            if Config.get_quality() < 100:
+            if ConfigServer.quality < 100:
                 image = Image.frombuffer("RGB", (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT), image_buffer,
                                          "raw", "RGB", 0, 1)
                 ib = BytesIO()
-                image.save(ib, "JPEG", quality=Config.get_quality())
+                image.save(ib, "JPEG", quality=ConfigServer.quality)
                 ServiceVID.broadcast(ib.getvalue())
             else:
                 ServiceVID.broadcast(image_buffer)

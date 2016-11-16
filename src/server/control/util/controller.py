@@ -5,6 +5,7 @@ import array
 from src.common.data import constants
 from src.common.data.config import Config
 from src.common.net.codec import Codec
+from src.server.data.config import ConfigServer
 from src.server.net import sockets
 
 
@@ -108,7 +109,7 @@ class Controller:
 
     @classmethod
     def is_input_within_timeframe(cls, input_buffer):
-        if time.time() - input_buffer[1] <= Config.get_input_delay():
+        if time.time() - input_buffer[1] <= ConfigServer.input_delay:
             return True
         return False
 

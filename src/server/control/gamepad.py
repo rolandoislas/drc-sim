@@ -6,6 +6,7 @@ import time
 from src.common.data import constants
 from src.server.control.server import Server
 from src.server.control.util.controller import Controller
+from src.server.data.config import ConfigServer
 from src.server.net import socket_handlers
 from src.server.net import sockets
 
@@ -15,6 +16,8 @@ class Gamepad:
         self.server = Server()
         sockets.Sockets.connect()
         socket_handlers.SocketHandlers.create()
+        ConfigServer.load()
+        ConfigServer.save()
 
     @staticmethod
     def handle_wii_packet(sock):

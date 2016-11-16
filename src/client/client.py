@@ -2,6 +2,7 @@ import pygame
 import select
 import socket
 import time
+import sys
 
 from src.client.net.socket_handlers import SocketHandlers
 from src.client.net.sockets import Sockets
