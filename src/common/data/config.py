@@ -13,7 +13,6 @@ class Config:
         self.config.read(self.path)
 
     def get_boolean(self, section, option, default, comment=""):
-        default = str(default)
         try:
             value = self.config.getboolean(section, option)
             self.add_value(section, option, value, comment, default=default)
@@ -24,25 +23,24 @@ class Config:
 
     def add_value(self, section, option, value, comment, min_val="", max_val="", default=""):
         value = str(value)
-        min_val = str(min_val)
-        max_val = str(max_val)
+        min_val = str(min_val) if min_val else None
+        max_val = str(max_val) if max_val else None
         default = str(default)
         if not self.config.has_section(section):
             self.config.add_section(section)
+
         if comment:
-            comment_str = "min: " + min_val + " " if min_val else ""
-            comment_str += "max: " + max_val + " " if max_val else ""
-            comment_str += "default: " + default + " " if default else ""
             self.config.set(section, "# " + comment.replace("\n", "\n# "))
-            self.config.set(section, "# " + comment_str)
+        comment_str = "min: " + min_val + " " if min_val else ""
+        comment_str += "max: " + max_val + " " if max_val else ""
+        comment_str += "default: " + default + " " if default else ""
+        self.config.set(section, "# " + comment_str)
+
         if self.config.has_option(section, option):
             self.config.remove_option(section, option)
         self.config.set(section, option, value)
 
     def get_float(self, section, option, min_val, max_val, default, comment=""):
-        min_val = str(min_val)
-        max_val = str(max_val)
-        default = str(default)
         try:
             value = self.config.getfloat(section, option)
             self.add_value(section, option, value, comment, min_val, max_val, default)
@@ -52,9 +50,6 @@ class Config:
             return default
 
     def get_int(self, section, option, min_val, max_val, default, comment=""):
-        min_val = str(min_val)
-        max_val = str(max_val)
-        default = str(default)
         try:
             value = self.config.getint(section, option)
             self.add_value(section, option, value, comment, min_val, max_val, default)
@@ -65,9 +60,9 @@ class Config:
 
     @staticmethod
     def get_min_max(value, min_val, max_val):
-        if value < min_val:
+        if min_val and value < min_val:
             return min_val
-        elif value > max_val:
+        elif max_val and value > max_val:
             return max_val
         else:
             return value

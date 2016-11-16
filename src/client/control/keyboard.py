@@ -1,50 +1,52 @@
 import pygame
 
 from src.client.control.control import Control
+from src.client.data.config_keyboard import ConfigKeyboard
 from src.common.data import buttons
 
 
 class Keyboard(Control):
 
+    def __init__(self):
+        Control.__init__(self)
+        ConfigKeyboard.load()
+        ConfigKeyboard.save()
+
     def get_button_input(self):
         keys = pygame.key.get_pressed()
         button_bits = 0
         # Check buttons
-        if keys[pygame.K_SPACE]:
+        if keys[ConfigKeyboard.button_a]:
             button_bits |= buttons.BUTTON_A
-        if keys[pygame.K_e]:
+        if keys[ConfigKeyboard.button_b]:
             button_bits |= buttons.BUTTON_B
-        if keys[pygame.K_d]:
+        if keys[ConfigKeyboard.button_x]:
             button_bits |= buttons.BUTTON_X
-        if keys[pygame.K_f]:
+        if keys[ConfigKeyboard.button_y]:
             button_bits |= buttons.BUTTON_Y
-        if keys[pygame.K_q]:
+        if keys[ConfigKeyboard.button_l]:
             button_bits |= buttons.BUTTON_L
-        if keys[pygame.K_r]:
+        if keys[ConfigKeyboard.button_r]:
             button_bits |= buttons.BUTTON_R
-        if keys[pygame.K_x]:
+        if keys[ConfigKeyboard.button_minus]:
             button_bits |= buttons.BUTTON_MINUS
-        if keys[pygame.K_c]:
+        if keys[ConfigKeyboard.button_plus]:
             button_bits |= buttons.BUTTON_PLUS
-        if keys[pygame.K_z]:
+        if keys[ConfigKeyboard.button_home]:
             button_bits |= buttons.BUTTON_HOME
-        if keys[pygame.K_1]:
+        if keys[ConfigKeyboard.button_zl]:
             button_bits |= buttons.BUTTON_ZL
-        if keys[pygame.K_4]:
+        if keys[ConfigKeyboard.button_zr]:
             button_bits |= buttons.BUTTON_ZR
         # Check Movement
-        if keys[pygame.K_RIGHT]:
-            button_bits |= buttons.HAT_RIGHT
-        elif keys[pygame.K_LEFT]:
-            button_bits |= buttons.HAT_LEFT
-        else:
-            button_bits |= buttons.HAT_CENTER
-        if keys[pygame.K_UP]:
-            button_bits |= buttons.HAT_UP
-        elif keys[pygame.K_DOWN]:
-            button_bits |= buttons.HAT_DOWN
-        else:
-            button_bits |= buttons.HAT_CENTER
+        if keys[ConfigKeyboard.button_right]:
+            button_bits |= buttons.BUTTON_RIGHT
+        elif keys[ConfigKeyboard.button_left]:
+            button_bits |= buttons.BUTTON_LEFT
+        if keys[ConfigKeyboard.button_up]:
+            button_bits |= buttons.BUTTON_UP
+        elif keys[ConfigKeyboard.button_down]:
+            button_bits |= buttons.BUTTON_DOWN
         return button_bits if button_bits > 0 else None
 
     def get_l3_r3_input(self):
@@ -54,9 +56,9 @@ class Keyboard(Control):
         """
         keys = pygame.key.get_pressed()
         button_bits = 0
-        if keys[pygame.K_t]:
+        if keys[ConfigKeyboard.button_l3]:
             button_bits |= buttons.BUTTON_L3
-        if keys[pygame.K_g]:
+        if keys[ConfigKeyboard.button_r3]:
             button_bits |= buttons.BUTTON_R3
         return button_bits if button_bits > 0 else None
 

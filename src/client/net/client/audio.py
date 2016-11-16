@@ -13,8 +13,9 @@ class AudioHandler:
         self.pa_wpos = self.pa_rpos = 0
 
     def close(self):
-        self.stream.stop_stream()
-        self.stream.close()
+        if self.stream:
+            self.stream.stop_stream()
+            self.stream.close()
 
     def update(self, data):
         self.pa_ring[self.pa_rpos] = array.array('H', data)
