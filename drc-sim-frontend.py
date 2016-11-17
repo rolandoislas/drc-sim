@@ -1,4 +1,3 @@
-import pygame
 import sys
 
 from src.client.client import Client

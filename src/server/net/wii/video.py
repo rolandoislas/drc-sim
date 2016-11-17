@@ -1,15 +1,12 @@
 import array
-from PIL import Image
+import time
 from io import BytesIO
 
 import construct
-import lz4
-
-import time
+from PIL import Image
 
 from src.common.data import constants
-from src.common.data.config import Config
-from src.server.data.config import Config, ConfigServer
+from src.server.data.config import ConfigServer
 from src.server.data.h264decoder import H264Decoder
 from src.server.net.server.video import ServiceVID
 from src.server.net.sockets import Sockets

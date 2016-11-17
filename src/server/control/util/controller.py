@@ -1,9 +1,7 @@
+import array
 import time
 
-import array
-
 from src.common.data import constants
-from src.common.data.config import Config
 from src.common.net.codec import Codec
 from src.server.data.config import ConfigServer
 from src.server.net import sockets

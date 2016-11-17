@@ -1,5 +1,4 @@
 import socket
-import time
 
 from src.common.net.codec import Codec
 

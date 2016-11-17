@@ -3,7 +3,6 @@ import socket
 from src.common.net.codec import Codec
 from src.server.net import socket_handlers
 from src.server.net import sockets
-from src.server.net.socket_handlers import SocketHandlers
 
 
 class Server:

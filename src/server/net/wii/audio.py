@@ -1,10 +1,6 @@
-import array
-import pyaudio
-
 import construct
 
 from src.common.data import constants
-from src.common.data.config import Config
 from src.server.data.config import ConfigServer
 from src.server.net.server.audio import ServiceAUD
 from src.server.net.server.command import ServiceCMD
