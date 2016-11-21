@@ -73,6 +73,8 @@ class Config:
         for index in xrange(0, len(path_parts)):
             if index < len(path_parts) - 1:
                 path += os.path.sep + path_parts[index]
+        if os.name == "nt":
+            path = path.replace(os.path.sep, "", 1)
         path = os.path.abspath(path)
         if not os.path.exists(path):
             os.makedirs(path)
