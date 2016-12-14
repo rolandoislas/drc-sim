@@ -9,18 +9,25 @@ from src.client.net.sockets import Sockets
 
 class Frontend:
     def __init__(self):
-        Controller.set_handler(Keyboard())  # TODO set based on cli arg
+        # Check CLI arguments
+        ip = sys.argv[1] if len(sys.argv) > 1 else ""
 
+        # Create set controller type
+        Controller.set_handler(Keyboard())  # TODO default to touch interface
+
+        # Create client instance
         self.client = Client()
 
-        Sockets.set_ip("")  # TODO set based on cli arg
+        # Create socks handlers and establish first connection
+        Sockets.set_ip(ip)
         self.client.reconnect()
         SocketHandlers.create()
 
     def run(self):
+        # Check and send client input
         Controller.check_input()
+        # Check for data from Wii U
         self.client.update()
-
 
 frontend = Frontend()
 
