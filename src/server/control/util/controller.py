@@ -14,7 +14,7 @@ class Controller:
     # Button buffers
     button_buffer = (0, 0)
     l3r3_buffer = (0, 0)
-    joystick_buffer = ((0, 0, 0, 0, 0), 0)
+    joystick_buffer = ((0, 0, 0, 0), 0)
     touch_buffer = (((-1, -1), (-1, -1)), 0)
 
     def __init__(self):
@@ -50,18 +50,16 @@ class Controller:
         # 3: r stick l/r
         # 4: r stick u/d
         # 5: r trigger
-        for i in xrange(6):
-            if i not in (2, 5):
-                orig = cls.get_joystick_input(i)
-                scaled = 0x800
-                if abs(orig) > 0.2:
-                    if i in (0, 3):
-                        scaled = cls.scale_stick(orig, -1, 1, 900, 3200)
-                    elif i in (1, 4):
-                        scaled = cls.scale_stick(orig, 1, -1, 900, 3200)
-                # print '%04i %04i %f' % (i, scaled, orig)
-                stick_mapping = {0: 0, 1: 1, 3: 2, 4: 3}
-                report[3 + stick_mapping[i]] = scaled
+        for axis in xrange(4):
+            orig = cls.get_joystick_input(axis)
+            scaled = 0x800
+            if abs(orig) > 0.2:
+                if axis in (0, 3):
+                    scaled = cls.scale_stick(orig, -1, 1, 900, 3200)
+                elif axis in (1, 4):
+                    scaled = cls.scale_stick(orig, 1, -1, 900, 3200)
+            # print '%04i %04i %f' % (i, scaled, orig)
+            report[3 + axis] = scaled
         return report
 
     @classmethod
