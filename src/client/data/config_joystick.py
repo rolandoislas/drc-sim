@@ -1,9 +1,11 @@
 import pygame
 
 from src.client.data.config_keyboard import ConfigKeyboard
+from src.common.data.config import Config
 
 
 class ConfigJoystick(ConfigKeyboard):
+    config = Config()
 
     def __init__(self):
         ConfigKeyboard.__init__(self)
@@ -24,3 +26,7 @@ class ConfigJoystick(ConfigKeyboard):
         cls.button_home = cls.config.get_int("BUTTON", "home", None, None, 9)
         cls.button_l3 = cls.config.get_int("BUTTON", "l3", None, None, 10, "Left joystick pressed")
         cls.button_r3 = cls.config.get_int("BUTTON", "r3", None, None, 11, "Right joystick pressed")
+
+    @classmethod
+    def save(cls):
+        cls.config.save()
