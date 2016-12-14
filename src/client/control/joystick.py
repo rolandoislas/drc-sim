@@ -74,13 +74,11 @@ class Joystick(Control):
 
     def get_joystick_input(self, joystick_id):
         joysticks = self.get_joysticks()
-        axes = []
-        joystick = joysticks[0]
-        joystick.init()
-        for axis in range(joystick.get_numaxes()):
-            axes.append(joystick.get_axis(axis))
-        while len(axes) < 4:
-            axes.append(0)
+        axes = [0, 0, 0, 0]
+        for joystick in joysticks:
+            joystick.init()
+            for axis in range(joystick.get_numaxes()):
+                axes[axis] += joystick.get_axis(axis)
         return axes
 
     @staticmethod
