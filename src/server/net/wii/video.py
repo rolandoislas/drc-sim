@@ -105,8 +105,8 @@ class VideoHandler(ServiceBase):
                 return
             # Reduce quality at the expense of CPU
             if ConfigServer.quality < 100:
-                image = Image.frombuffer("RGB", (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT), image_buffer,
-                                         "raw", "RGB", 0, 1)
+                image = Image.frombuffer("RGB", (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT),
+                                         str(image_buffer), "raw", "RGB", 0, 1)
                 ib = BytesIO()
                 image.save(ib, "JPEG", quality=ConfigServer.quality)
                 ServiceVID.broadcast(ib.getvalue())
