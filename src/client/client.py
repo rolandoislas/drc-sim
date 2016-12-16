@@ -14,11 +14,11 @@ from src.common.net.net_util import NetUtil
 class Client:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT))
+        self.screen = pygame.display.set_mode((constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("drc-sim")
 
     def update(self):
-        self.check_quit()
+        self.check_events()
         self.check_sockets()
 
     def reconnect(self):
@@ -44,13 +44,15 @@ class Client:
             except socket.error:
                 start = time.time()
                 while time.time() - start < 5:
-                    self.check_quit()
+                    self.check_events()
 
     @staticmethod
-    def check_quit():
+    def check_events():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
+            if event.type == pygame.VIDEORESIZE:
+                pygame.display.set_mode(event.size, pygame.RESIZABLE)
 
     @staticmethod
     def handle_media_packet(sock, buffer_id):

@@ -25,5 +25,6 @@ class VideoHandler:
             except ValueError:
                 print "[VIDEO] Skipping frame"
                 return
+        surface = pygame.transform.smoothscale(surface, pygame.display.get_surface().get_size())
         pygame.display.get_surface().blit(surface, (0, 0))
         pygame.display.flip()
