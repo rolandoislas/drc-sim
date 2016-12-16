@@ -15,6 +15,10 @@ class Keyboard(Control):
     def get_button_input(self):
         keys = pygame.key.get_pressed()
         button_bits = 0
+        # Special buttons
+        if keys[ConfigKeyboard.button_fullscreen]:
+            pygame.display.set_mode((0, 0), pygame.FULLSCREEN if not pygame.display.get_surface().get_flags() &
+                                                                 pygame.FULLSCREEN else pygame.RESIZABLE)
         # Check buttons
         if keys[ConfigKeyboard.button_a]:
             button_bits |= buttons.BUTTON_A

@@ -4,6 +4,7 @@ from src.common.data.config import Config
 
 
 class ConfigKeyboard:
+    button_fullscreen = None
     button_r3 = None
     button_l3 = None
     button_down = None
@@ -29,6 +30,7 @@ class ConfigKeyboard:
     @classmethod
     def load(cls):
         cls.config.load("~/.drc-sim/keyboard.conf")
+        # Controller buttons
         cls.button_a = cls.config.get_int("KEY", "a", None, None, pygame.K_SPACE)
         cls.button_b = cls.config.get_int("KEY", "b", None, None, pygame.K_e)
         cls.button_x = cls.config.get_int("KEY", "x", None, None, pygame.K_d)
@@ -46,6 +48,8 @@ class ConfigKeyboard:
         cls.button_down = cls.config.get_int("KEY", "down", None, None, pygame.K_DOWN, "D-pad down")
         cls.button_l3 = cls.config.get_int("KEY", "l3", None, None, pygame.K_t, "Left joystick pressed")
         cls.button_r3 = cls.config.get_int("KEY", "r3", None, None, pygame.K_g, "Right joystick pressed")
+        # Special buttons
+        cls.button_fullscreen = cls.config.get_int("KEY", "fullscreen", None, None, pygame.K_F11)
 
     @classmethod
     def save(cls):

@@ -52,7 +52,7 @@ class Client:
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.VIDEORESIZE:
-                pygame.display.set_mode(event.size, pygame.RESIZABLE)
+                pygame.display.set_mode(event.size, pygame.display.get_surface().get_flags())
 
     @staticmethod
     def handle_media_packet(sock, buffer_id):
