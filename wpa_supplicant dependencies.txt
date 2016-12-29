@@ -1,0 +1,34 @@
+------------------------------------------
+Compile
+------------------------------------------
+cd drc-hostap/wpa_supplicant
+
+cp defconfig .config
+echo CONFIG_WPS=y >> .config
+echo CONFIG_TENDONIN=y >> .config
+echo CONFIG_LIBNL32=y >> .config
+
+sudo apt-get install libssl-dev
+sudo apt-get install libnl-genl-3-dev
+sudo apt-get install gcc
+sudo apt-get install make
+
+make
+
+
+-------------------------------------------
+Get Key
+-------------------------------------------
+cd drc-hostap/wpa_supplicant
+
+cp ../conf/get_psk.conf.orig get_psk.conf
+
+sudo ./wpa_supplicant -Dnl80211 -i $WLAN -c get_psk.conf
+
+sudo ./wpa_cli -p /var/run/wpa_supplicant_drc
+>scan
+# wait for "CTRL-EVENT-SCAN-RESULTS"
+>scan_results
+# expect line		34:af:2c:a0:4b:c6	5240	-77	[WPA2-PSK-CCMP][ESS]	\x00\x00\x00\x00
+# save BSSID
+> wps_pin $BSSID $PIN
