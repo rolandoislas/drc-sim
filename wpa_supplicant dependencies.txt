@@ -1,5 +1,5 @@
 ------------------------------------------
-Compile
+Compile wpa_supplicant
 ------------------------------------------
 cd drc-hostap/wpa_supplicant
 
@@ -14,6 +14,18 @@ sudo apt-get install gcc
 sudo apt-get install make
 
 make
+
+
+------------------------------------------
+Compile hostapd
+------------------------------------------
+cd drc-hostap/hostapd
+
+cp defconfig .config
+echo CONFIG_LIBNL32=y >> .config
+echo CONFIG_IEEE80211N=y >> .config
+
+make -j5
 
 
 -------------------------------------------
