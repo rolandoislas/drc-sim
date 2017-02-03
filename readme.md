@@ -1,31 +1,23 @@
-drc-sim-keyboard
+drc-sim
 ---
 
-Fork of drc-sim with basic keyboard support
+Stable: [![Build Status](https://travis-ci.org/rolandoislas/drc-sim.svg?branch=master)](https://travis-ci.org/rolandoislas/drc-sim)
+Dev: [![Build Status](https://travis-ci.org/rolandoislas/drc-sim.svg?branch=develop)](https://travis-ci.org/rolandoislas/drc-sim)
 
-drc-sim by memahaxx: https://bitbucket.org/memahaxx/drc-sim
-
-drc-sim-keyboard by justjake: https://github.com/justjake/drc-sim-keyboard
+Fork of drc-sim with a server/client implementation. This allows for a broder range of clients.
 
 # Installation
 
-View justjake'self [readme](https://github.com/justjake/drc-sim-keyboard/blob/master/README.md).
+[Installation instructions] are available on the wiki.
 
-# Controls
+# Credits
 
-The controls are hardcoded right now,  but I hope to move them to a config file.
+[drc-sim] (original) by memahaxx
 
-| Gamepad | Keyboard |
-| ------- | -------- |
-| Up Down Left Right | Arrow Keys |
-| a       | SPACE    |
-| b       | e        |
-| x       | d        |
-| y       | f        |
-| l       | q        |
-| r       | r        |
-| zl      | t        |
-| zr      | g        |
-| minus   | x        |
-| plus    | c        |
-| home    | z        |
+[drc-sim-keyboard] by justjake
+
+
+
+[drc-sim]: https://bitbucket.org/memahaxx/drc-sim
+[drc-sim-keyboard]: https://github.com/justjake/drc-sim-keyboard
+[Installation instructions]: https://github.com/rolandoislas/drc-sim/wiki/Install
