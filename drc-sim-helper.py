@@ -321,6 +321,9 @@ class CommandRunServer(NetworkCommand):
 
     def start_drc_sim_backend(self):
         drc_sim_path = os.path.join(os.path.dirname(__file__), "drc-sim-backend.py")
+        # Relative or in path
+        if not os.path.isfile(drc_sim_path):
+            drc_sim_path = "/usr/local/bin/drc-sim-backend.py"
         self.drc_sim_backend_process = subprocess.Popen([sys.executable, drc_sim_path],
                                                         stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
 
@@ -452,7 +455,11 @@ class CommandGetKey(NetworkCommand):
         conf_name = "get_psk.conf"
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
-        shutil.copyfile(os.path.join(os.path.dirname(__file__), "resources/config/get_psk.conf"), tmp_dir + conf_name)
+        # Check conf exists relative to script or installed to /usr/share/
+        orig_conf = os.path.join(os.path.dirname(__file__), "resources/config/get_psk.conf")
+        if not os.path.isfile(orig_conf):
+            orig_conf = "/usr/share/drc-sim/config/get_psk.conf"
+        shutil.copyfile(orig_conf, tmp_dir + conf_name)
         # Start wpa_supplicant
         self.stop()
         self.start_wpa_supplicant(tmp_dir + conf_name)
@@ -469,7 +476,7 @@ class CommandGetKey(NetworkCommand):
         tries = 0
         wiiu_ap = re.compile('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})(\s*\d*\s*-*\d*\s*)(\[WPA2-PSK-CCMP\])?'
                              '(\[ESS\])(\s*)(WiiU|\\\\x00)(.+)$')  # \x00 is escaped (\\x00)
-        while tries < 10:
+        while tries <= 10:
             for line in self.wpa_cli("scan_results").split("\n"):
                 if wiiu_ap.match(line):
                     self.bssids.append(line.split()[0])
@@ -497,8 +504,10 @@ class CommandGetKey(NetworkCommand):
                 conf = open(tmp_dir + conf_name)
                 lines = conf.readlines()
                 conf.close()
-                if len(lines) > 4:
-                    auth = True
+                for line in lines:
+                    if "network={" in line:
+                        auth = True
+                if auth:
                     break
                 tries += 1
                 time.sleep(1)
