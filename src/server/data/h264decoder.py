@@ -20,7 +20,7 @@ class H264Decoder:
             struct AVPacket { ...; uint8_t *data; int size; ...; };
             void av_init_packet(struct AVPacket *pkt);
             
-            enum AVCodecID { CODEC_ID_H264, ... };
+            enum AVCodecID { AV_CODEC_ID_H264, ... };
             struct AVCodec *avcodec_find_decoder(enum AVCodecID id);
 
             struct AVCodecContext *avcodec_alloc_context3(struct AVCodec *codec);
@@ -70,7 +70,7 @@ class H264Decoder:
         self.av_packet = self.ffi.new('struct AVPacket *')
         self.ns.av_init_packet(self.av_packet)
 
-        self.codec = self.ns.avcodec_find_decoder(self.ns.CODEC_ID_H264)
+        self.codec = self.ns.avcodec_find_decoder(self.ns.AV_CODEC_ID_H264)
         if not self.codec:
             raise Exception('avcodec_alloc_context3')
         self.context = self.ns.avcodec_alloc_context3(self.codec)
