@@ -257,11 +257,11 @@ class NetworkCommand(Command):
         conf = open(self.nm_conf, "a")
         conf.writelines(["[keyfile]", "\nunmanaged-devices=mac:" + self.interface_wiiu[1]])
         conf.close()
-        subprocess.call(["sudo", "service", "network-manager", "restart"], stdout=open(os.devnull, "w"),
+        subprocess.call(["service", "network-manager", "restart"], stdout=open(os.devnull, "w"),
                         stderr=subprocess.STDOUT)
 
     def start_wpa_supplicant(self, conf):
-        self.wpa_supplicant_process = subprocess.Popen(["sudo", "wpa_supplicant_drc", "-Dnl80211", "-i",
+        self.wpa_supplicant_process = subprocess.Popen(["wpa_supplicant_drc", "-Dnl80211", "-i",
                                                         self.interface_wiiu[0], "-c", conf],
                                                        stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
 
@@ -272,7 +272,7 @@ class NetworkCommand(Command):
 
     @staticmethod
     def kill_wpa():
-        subprocess.call(["sudo", "killall", "wpa_supplicant_drc"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+        subprocess.call(["killall", "wpa_supplicant_drc"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
 
 
 class CommandRunServer(NetworkCommand):
@@ -332,29 +332,29 @@ class CommandRunServer(NetworkCommand):
         wii_subnet = "192.168.1.0/24"
         wii_gateway = "192.168.1.1"
         # Assign an ip to the interface.
-        subprocess.call(["sudo", "ifconfig", self.interface_wiiu[0], wii_local_ip], stdout=open(os.devnull),
+        subprocess.call(["ifconfig", self.interface_wiiu[0], wii_local_ip], stdout=open(os.devnull),
                         stderr=subprocess.STDOUT)
         # This creates two different routing tables, that we use based on the source-address.
-        subprocess.call(["sudo", "ip", "rule", "add", "from", self.ip, "table", "1"], stdout=open(os.devnull),
+        subprocess.call(["ip", "rule", "add", "from", self.ip, "table", "1"], stdout=open(os.devnull),
                         stderr=subprocess.STDOUT)
-        subprocess.call(["sudo", "ip", "rule", "add", "from", wii_local_ip, "table", "2"], stdout=open(os.devnull),
+        subprocess.call(["ip", "rule", "add", "from", wii_local_ip, "table", "2"], stdout=open(os.devnull),
                         stderr=subprocess.STDOUT)
         # Configure first routing table
-        subprocess.call(["sudo", "ip", "route", "add", self.subnet, "dev", self.interface_normal[0],
+        subprocess.call(["ip", "route", "add", self.subnet, "dev", self.interface_normal[0],
                          "scope", "link", "table", "1"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        subprocess.call(["sudo", "ip", "route", "add", "default", "via", self.gateway, "dev",
+        subprocess.call(["ip", "route", "add", "default", "via", self.gateway, "dev",
                          self.interface_normal[0], "table", "1"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
         # Configure second routing table
-        subprocess.call(["sudo", "ip", "route", "add", wii_subnet, "dev", self.interface_wiiu[0], "scope",
+        subprocess.call(["ip", "route", "add", wii_subnet, "dev", self.interface_wiiu[0], "scope",
                          "link", "table", "2"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        subprocess.call(["sudo", "ip", "route", "add", "default", "via", wii_gateway, "dev",
+        subprocess.call(["ip", "route", "add", "default", "via", wii_gateway, "dev",
                          self.interface_wiiu[0], "table", "2"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
         # default route for the selection process of normal internet-traffic
-        subprocess.call(["sudo", "ip", "route", "add", "default", "scope", "global", "nexthop", "via",
+        subprocess.call(["ip", "route", "add", "default", "scope", "global", "nexthop", "via",
                          self.gateway, "dev", self.interface_normal[0]], stdout=open(os.devnull),
                         stderr=subprocess.STDOUT)
         # Setup dhcp
-        subprocess.call(["sudo", "dhclient"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+        subprocess.call(["dhclient"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
 
     def check_conf(self):
         # User needs auth details first
@@ -528,7 +528,7 @@ class CommandGetKey(NetworkCommand):
         if isinstance(command, str):
             command = [command]
         try:
-            process = subprocess.check_output(["sudo", "wpa_cli_drc", "-p", "/var/run/wpa_supplicant_drc"] + command,
+            process = subprocess.check_output(["wpa_cli_drc", "-p", "/var/run/wpa_supplicant_drc"] + command,
                                               stderr=subprocess.STDOUT)
             return process
         except subprocess.CalledProcessError:
