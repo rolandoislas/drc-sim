@@ -12,7 +12,7 @@ Fork of drc-sim with a server/client implementation. This allows for a broder ra
 
 # Credits
 
-[drc-sim] (original) by memahaxx
+[drc-sim] \(original\) by memahaxx
 
 [drc-sim-keyboard] by justjake
 
