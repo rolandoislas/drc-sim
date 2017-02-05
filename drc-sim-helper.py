@@ -1,4 +1,5 @@
 # coding=utf-8
+import argparse
 import curses
 import curses.textpad
 import locale
@@ -16,6 +17,7 @@ class DrcSimHelper:
     def __init__(self):
         if os.getuid() != 0:
             raise SystemExit("This script needs to be run as root.")
+        self.args = None
         self.active_command = None
         self.textbox = None
         self.window_main = None
@@ -23,7 +25,15 @@ class DrcSimHelper:
         self.input_queue = multiprocessing.Queue()
         self.title = "drc-sim-helper"
         locale.setlocale(locale.LC_ALL, "")
+        self.parse_args()
         curses.wrapper(self.start)
+
+    def parse_args(self):
+        arg_parser = argparse.ArgumentParser()
+        arg_parser.add_argument("--all-interfaces", action="store_const",
+                                const=True, default=False, help="show all interfaces instead of only the Wii U "
+                                                                "compatible")
+        self.args = arg_parser.parse_args()
 
     def start(self, screen):
         height, width = screen.getmaxyx()
@@ -214,9 +224,11 @@ class NetworkCommand(Command):
                 pass
 
     def prompt_wiiu_interface(self):
-        self.interfaces_wiiu = InterfaceUtil.get_wiiu_compatible_interfaces()
+        self.interfaces_wiiu = InterfaceUtil.get_wiiu_compatible_interfaces() if not self.parent.args.all_interfaces \
+            else InterfaceUtil.get_all_interfaces()
         if len(self.interfaces_wiiu) == 0:
-            self.parent.stop("No Wii U compatible wireless interfaces found.")
+            self.parent.stop("No Wii U compatible wireless interfaces found. Add --all-interfaces to show all "
+                             "interfaces.")
         self.prompt_user_input_choice(self.interfaces_wiiu,
                                       ["Select a wireless interface that will be used for connections to a Wii U."])
         self.requesting_interface_wii_input = True
