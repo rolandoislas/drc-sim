@@ -404,7 +404,7 @@ class CommandGetKey(NetworkCommand):
         # get the wps pin from user
         if self.requesting_wps_pin_input:
             try:
-                if len(command) == 4 and len(command) == len(set(command)):
+                if len(command) == 4:
                     for char in command:
                         if int(char) < 0 or int(char) > 3:
                             return
