@@ -17,6 +17,7 @@ class DrcSimHelper:
     def __init__(self):
         if os.getuid() != 0:
             raise SystemExit("This script needs to be run as root.")
+        self.height = None
         self.args = None
         self.active_command = None
         self.textbox = None
@@ -29,14 +30,28 @@ class DrcSimHelper:
         curses.wrapper(self.start)
 
     def parse_args(self):
-        arg_parser = argparse.ArgumentParser()
+        arg_parser = argparse.ArgumentParser(description="Helper script for connecting to the Wii U.",
+                                             prefix_chars="- ")
         arg_parser.add_argument("--all-interfaces", action="store_const",
                                 const=True, default=False, help="show all interfaces instead of only the Wii U "
                                                                 "compatible")
+        if "run_server" in sys.argv:
+            subparsers = arg_parser.add_subparsers()
+            # run_server
+            run_server = subparsers.add_parser("run_server")
+            run_server.add_argument("wiiu_interface", type=str)
+            run_server.add_argument("normal_interface", type=str)
+            # add to input queue to trigger command parsing
+            self.input_queue.put("")
+        else:
+            arg_parser.add_argument(" run_server", dest="...", help="connects to the wii u and runs drc-sim-backend ("
+                                                                    "needs auth details)")
         self.args = arg_parser.parse_args()
+        self.args.run_server = "run_server" in sys.argv
 
     def start(self, screen):
         height, width = screen.getmaxyx()
+        self.height = height
         # title
         screen.addstr(0, width / 2 - len(self.title) / 2, self.title)
         # command prompt symbol
@@ -152,7 +167,7 @@ class CommandHelp(Command):
             self.parent.set_command(CommandHelp)
         elif command == "get_key":
             self.parent.set_command(CommandGetKey)
-        elif command == "run_server":
+        elif command == "run_server" or self.parent.args.run_server:
             self.parent.set_command(CommandRunServer)
 
     def show_main(self):
@@ -224,6 +239,12 @@ class NetworkCommand(Command):
                 pass
 
     def prompt_wiiu_interface(self):
+        # Check if arg passed in cli
+        if hasattr(self.parent.args, "wiiu_interface"):
+            self.interface_wiiu = [self.parent.args.wiiu_interface]
+            self.forward_method()
+            return
+        # Prompt
         self.interfaces_wiiu = InterfaceUtil.get_wiiu_compatible_interfaces() if not self.parent.args.all_interfaces \
             else InterfaceUtil.get_all_interfaces()
         if len(self.interfaces_wiiu) == 0:
@@ -234,6 +255,12 @@ class NetworkCommand(Command):
         self.requesting_interface_wii_input = True
 
     def prompt_normal_interface(self):
+        # Check cli arg
+        if hasattr(self.parent.args, "normal_interface"):
+            self.interface_normal = [self.parent.args.normal_interface]
+            self.forward_method()
+            return
+        # Prompt
         self.interfaces_normal = InterfaceUtil.get_all_interfaces()
         self.interfaces_normal.remove(self.interface_wiiu)
         if len(self.interfaces_normal) == 0:
@@ -273,6 +300,7 @@ class NetworkCommand(Command):
                         stderr=subprocess.STDOUT)
 
     def start_wpa_supplicant(self, conf):
+        subprocess.call(["rfkill", "unblock", "wlan"], stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
         self.wpa_supplicant_process = subprocess.Popen(["wpa_supplicant_drc", "-Dnl80211", "-i",
                                                         self.interface_wiiu[0], "-c", conf],
                                                        stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
@@ -286,10 +314,20 @@ class NetworkCommand(Command):
     def kill_wpa():
         subprocess.call(["killall", "wpa_supplicant_drc"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
 
+    @staticmethod
+    def wpa_cli(command):
+        if isinstance(command, str):
+            command = [command]
+        try:
+            process = subprocess.check_output(["wpa_cli_drc", "-p", "/var/run/wpa_supplicant_drc"] + command,
+                                              stderr=subprocess.STDOUT)
+            return process
+        except subprocess.CalledProcessError:
+            return ""
+
 
 class CommandRunServer(NetworkCommand):
     def __init__(self, parent, window_main, textbox):
-        NetworkCommand.__init__(self, parent, window_main, textbox, self.check_conf)
         # process
         self.status_output_time = 0
         self.dead_process_time = None
@@ -298,6 +336,8 @@ class CommandRunServer(NetworkCommand):
         self.ip = None
         self.subnet = None
         self.gateway = None
+
+        NetworkCommand.__init__(self, parent, window_main, textbox, self.check_conf)
 
     def stop(self):
         NetworkCommand.stop(self)
@@ -312,9 +352,19 @@ class CommandRunServer(NetworkCommand):
             is_alive_drc = self.drc_sim_backend_process.poll() is None
             if time.time() - self.status_output_time >= 1:
                 self.status_output_time = time.time()
-                self.window_main.addstr(0, 0, "Server status:")
-                self.window_main.addstr(2, 0, "wpa_supplicant: " + str(is_alive_wpa) + " " * 10)
-                self.window_main.addstr(3, 0, "drc-sim-backend: " + str(is_alive_drc) + " " * 10)
+                self.window_main.addstr(0, 0, "Server status")
+                wpa_status = self.wpa_cli("status")
+                if "wpa_state=COMPLETED" in wpa_status:
+                    wpa_status = "connected"
+                elif "wpa_state=SCANNING" in wpa_status:
+                    wpa_status = "connecting..."
+                else:
+                    wpa_status = "unknown"
+                self.window_main.addstr(2, 0, "wpa_supplicant_drc: " +
+                                        (wpa_status if is_alive_wpa else "stopped") + " " * 10)
+                self.window_main.addstr(3, 0, "drc-sim-backend: " +
+                                        ("running" if is_alive_drc else "stopped") + " " * 10)
+                self.window_main.addstr(self.parent.height - 3, 0, "> ")
                 self.window_main.refresh()
             # update time if running
             if is_alive_wpa and is_alive_drc:
@@ -371,7 +421,8 @@ class CommandRunServer(NetworkCommand):
     def check_conf(self):
         # User needs auth details first
         if not os.path.isfile(self.conf_psk):
-            self.parent.stop("No Wii U wireless authentication found. Try running \"get_key\".")
+            self.parent.stop("No Wii U wireless authentication found at $dir. Try running \"get_key\"."
+                             .replace("$dir", str(self.conf_psk)))
         # Prompt for normal NIC
         if not self.interface_normal:
             self.prompt_normal_interface()
@@ -534,17 +585,6 @@ class CommandGetKey(NetworkCommand):
             return
         # Save details
         self.save_key()
-
-    @staticmethod
-    def wpa_cli(command):
-        if isinstance(command, str):
-            command = [command]
-        try:
-            process = subprocess.check_output(["wpa_cli_drc", "-p", "/var/run/wpa_supplicant_drc"] + command,
-                                              stderr=subprocess.STDOUT)
-            return process
-        except subprocess.CalledProcessError:
-            return ""
 
     def save_key(self):
         # Check the config path
