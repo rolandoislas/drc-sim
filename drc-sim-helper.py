@@ -383,9 +383,6 @@ class CommandRunServer(NetworkCommand):
 
     def start_drc_sim_backend(self):
         drc_sim_path = os.path.join(os.path.dirname(__file__), "drc-sim-backend.py")
-        # Relative or in path
-        if not os.path.isfile(drc_sim_path):
-            drc_sim_path = "/usr/local/bin/drc-sim-backend.py"
         self.drc_sim_backend_process = subprocess.Popen([sys.executable, drc_sim_path],
                                                         stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
 
@@ -434,7 +431,13 @@ class CommandRunServer(NetworkCommand):
 
     def calulate_network_details(self):
         # Get interface ip
-        interface_info = subprocess.check_output(["ifconfig", self.interface_normal[0]])
+        try:
+            interface_info = subprocess.check_output(["ifconfig", self.interface_normal[0]])
+            # this is here just to error if the wii u interface name is invalid
+            subprocess.check_call(["ifconfig", self.interface_wiiu[0]])
+        except subprocess.CalledProcessError:
+            self.parent.stop("Invalid interface specified.")
+            return
         for line in interface_info.splitlines():
             if "inet addr:" in line:
                 self.ip = line.strip().replace("inet addr:", "").split()[0]
@@ -518,10 +521,7 @@ class CommandGetKey(NetworkCommand):
         conf_name = "get_psk.conf"
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
-        # Check conf exists relative to script or installed to /usr/share/
         orig_conf = os.path.join(os.path.dirname(__file__), "resources/config/get_psk.conf")
-        if not os.path.isfile(orig_conf):
-            orig_conf = "/usr/share/drc-sim/config/get_psk.conf"
         shutil.copyfile(orig_conf, tmp_dir + conf_name)
         # Start wpa_supplicant
         self.stop()
