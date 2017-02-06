@@ -4,7 +4,7 @@ drc-sim
 Stable: [![Build Status](https://travis-ci.org/rolandoislas/drc-sim.svg?branch=master)](https://travis-ci.org/rolandoislas/drc-sim)
 Dev: [![Build Status](https://travis-ci.org/rolandoislas/drc-sim.svg?branch=develop)](https://travis-ci.org/rolandoislas/drc-sim)
 
-Fork of drc-sim with a server/client implementation. This allows for a broder range of clients.
+Fork of drc-sim with a server/client implementation. This allows for a broader range of clients.
 
 # Installation
 
