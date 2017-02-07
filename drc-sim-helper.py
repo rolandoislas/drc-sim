@@ -339,6 +339,12 @@ class CommandRunServer(NetworkCommand):
 
         NetworkCommand.__init__(self, parent, window_main, textbox, self.check_conf)
 
+    def parse_command(self, command):
+        NetworkCommand.parse_command(self, command)
+        if command == "pypy":
+            sys.executable = "pypy"
+            self.start_processes()
+
     def stop(self):
         NetworkCommand.stop(self)
         if self.drc_sim_backend_process and not self.drc_sim_backend_process.poll():
