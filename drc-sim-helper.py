@@ -12,6 +12,8 @@ import sys
 import time
 import traceback
 
+import select
+
 
 class DrcSimHelper:
     def __init__(self):
@@ -25,6 +27,7 @@ class DrcSimHelper:
         self.input_thread = None
         self.input_queue = multiprocessing.Queue()
         self.title = "drc-sim-helper"
+        self.log_path = os.path.expanduser("~/.drc-sim/")
         locale.setlocale(locale.LC_ALL, "")
         self.parse_args()
         curses.wrapper(self.start)
@@ -35,6 +38,8 @@ class DrcSimHelper:
         arg_parser.add_argument("--all-interfaces", action="store_const",
                                 const=True, default=False, help="show all interfaces instead of only the Wii U "
                                                                 "compatible")
+        arg_parser.add_argument("--log", action="store_const", const=True, default=False,
+                                help="log output of wpa_supplicant_drc and the backend")
         if "run_server" in sys.argv:
             subparsers = arg_parser.add_subparsers()
             # run_server
@@ -266,7 +271,7 @@ class NetworkCommand(Command):
         if len(self.interfaces_normal) == 0:
             self.parent.stop("No interfaces found.")
         self.prompt_user_input_choice(self.interfaces_normal,
-                                      ["Select a wireless interface that will be used for a standard network "
+                                      ["Select an interface that will be used for a standard network "
                                        "connection."])
         self.requesting_interface_normal_input = True
 
@@ -301,14 +306,17 @@ class NetworkCommand(Command):
 
     def start_wpa_supplicant(self, conf):
         subprocess.call(["rfkill", "unblock", "wlan"], stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
+        log = open(os.path.join(self.parent.log_path, "wpa_supplicant_drc.log"), "w") if self.parent.args.log else \
+            open(os.devnull, "w")
+        log.write("-" * 80 + "\nStarted wpa_supplicant_drc\n")
         self.wpa_supplicant_process = subprocess.Popen(["wpa_supplicant_drc", "-Dnl80211", "-i",
                                                         self.interface_wiiu[0], "-c", conf],
-                                                       stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
+                                                       stdout=log, stderr=subprocess.STDOUT)
 
     def stop(self):
         if self.wpa_supplicant_process and not self.wpa_supplicant_process.poll():
             self.wpa_supplicant_process.terminate()
-        self.kill_wpa()
+            # self.kill_wpa()
 
     @staticmethod
     def kill_wpa():
@@ -329,6 +337,7 @@ class NetworkCommand(Command):
 class CommandRunServer(NetworkCommand):
     def __init__(self, parent, window_main, textbox):
         # process
+        self.drc_sim_backend_queue = multiprocessing.Queue()
         self.status_output_time = 0
         self.dead_process_time = None
         self.drc_sim_backend_process = None
@@ -343,7 +352,7 @@ class CommandRunServer(NetworkCommand):
         NetworkCommand.parse_command(self, command)
         if command == "pypy":
             sys.executable = "pypy"
-            self.start_processes()
+            self.start_processes(True)
 
     def stop(self):
         NetworkCommand.stop(self)
@@ -363,13 +372,20 @@ class CommandRunServer(NetworkCommand):
                 if "wpa_state=COMPLETED" in wpa_status:
                     wpa_status = "connected"
                 elif "wpa_state=SCANNING" in wpa_status:
-                    wpa_status = "connecting..."
+                    wpa_status = "connecting"
                 else:
                     wpa_status = "unknown"
-                self.window_main.addstr(2, 0, "wpa_supplicant_drc: " +
-                                        (wpa_status if is_alive_wpa else "stopped") + " " * 10)
-                self.window_main.addstr(3, 0, "drc-sim-backend: " +
-                                        ("running" if is_alive_drc else "stopped") + " " * 10)
+                self.window_main.addstr(2, 0, "Wii U Connection: " +
+                                        (wpa_status if is_alive_wpa else "stopped") + " " * 20)
+                self.window_main.addstr(3, 0, "Server: " +
+                                        ("running" if is_alive_drc else "stopped") + " " * 20)
+                self.window_main.addstr(5, 0, "Interface Wii U: " + self.interface_wiiu[0] + ", " +
+                                        self.interface_wiiu[1])
+                self.window_main.addstr(6, 0, "Interface Normal: " + self.interface_normal[0] + ", " +
+                                        self.interface_normal[1] + ", " + self.ip)
+                self.window_main.addstr(8, 0, "Logging: " + str(self.parent.args.log))
+                if self.parent.args.log:
+                    self.window_main.addstr(9, 0, "Log Path: " + self.parent.log_path)
                 self.window_main.addstr(self.parent.height - 3, 0, "> ")
                 self.window_main.refresh()
             # update time if running
@@ -377,43 +393,60 @@ class CommandRunServer(NetworkCommand):
                 self.dead_process_time = time.time()
             # restart if process has been dead for a while
             if time.time() - self.dead_process_time >= 10:
-                self.start_processes()
+                self.start_processes(True)
 
-    def start_processes(self):
-        self.stop()
+    def start_processes(self, restart=False):
+        if not restart:
+            self.stop()
         self.dead_process_time = time.time()
         self.clear()
-        self.start_wpa_supplicant(self.conf_psk)
+        if self.wpa_supplicant_process is None or self.wpa_supplicant_process.poll():
+            self.start_wpa_supplicant(self.conf_psk)
         self.add_route()
-        self.start_drc_sim_backend()
+        if self.drc_sim_backend_process is None or self.drc_sim_backend_process.poll():
+            self.start_drc_sim_backend()
 
     def start_drc_sim_backend(self):
         drc_sim_path = os.path.join(os.path.dirname(__file__), "drc-sim-backend.py")
+        log = open(os.path.join(self.parent.log_path, "drc-sim-backend.log"), "w") if self.parent.args.log else \
+            open(os.devnull, "w")
+        log.write("-" * 80 + "\nStarted drc-sim-backend\n")
         self.drc_sim_backend_process = subprocess.Popen([sys.executable, drc_sim_path],
-                                                        stdout=open(os.devnull, "w"), stderr=subprocess.STDOUT)
+                                                        stdout=log, stderr=subprocess.STDOUT)
 
     def add_route(self):
         wii_local_ip = "192.168.1.11"
         wii_subnet = "192.168.1.0/24"
         wii_gateway = "192.168.1.1"
+        table_1 = "111"
+        table_2 = "112"
+        # Flush table in case they persisted
+        subprocess.call(["ip", "route", "flush", "table", table_1], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+        subprocess.call(["ip", "route", "flush", "table", table_2], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+        # Flush the device
+        subprocess.call(["ip", "addr", "flush", "dev", self.interface_wiiu[0]], stdout=open(os.devnull),
+                        stderr=subprocess.STDOUT)
+        for interface in self.interfaces_normal:
+            subprocess.call(["ip", "addr", "flush", "dev", interface[0]], stdout=open(os.devnull),
+                            stderr=subprocess.STDOUT)
+        # This creates two different routing tables, that we use based on the source-address.
+        subprocess.check_call(["ip", "rule", "add", "from", self.ip, "table", table_1], stdout=open(os.devnull),
+                              stderr=subprocess.STDOUT)
+        subprocess.call(["ip", "rule", "add", "from", wii_local_ip, "table", table_2], stdout=open(os.devnull),
+                        stderr=subprocess.STDOUT)
         # Assign an ip to the interface.
         subprocess.call(["ifconfig", self.interface_wiiu[0], wii_local_ip], stdout=open(os.devnull),
                         stderr=subprocess.STDOUT)
-        # This creates two different routing tables, that we use based on the source-address.
-        subprocess.call(["ip", "rule", "add", "from", self.ip, "table", "1"], stdout=open(os.devnull),
-                        stderr=subprocess.STDOUT)
-        subprocess.call(["ip", "rule", "add", "from", wii_local_ip, "table", "2"], stdout=open(os.devnull),
-                        stderr=subprocess.STDOUT)
         # Configure first routing table
         subprocess.call(["ip", "route", "add", self.subnet, "dev", self.interface_normal[0],
-                         "scope", "link", "table", "1"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+                         "scope", "link", "table", table_1], stdout=open(os.devnull), stderr=subprocess.STDOUT)
         subprocess.call(["ip", "route", "add", "default", "via", self.gateway, "dev",
-                         self.interface_normal[0], "table", "1"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+                         self.interface_normal[0], "table", table_1], stdout=open(os.devnull), stderr=subprocess.STDOUT)
         # Configure second routing table
         subprocess.call(["ip", "route", "add", wii_subnet, "dev", self.interface_wiiu[0], "scope",
-                         "link", "table", "2"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+                         "link", "table", table_2], stdout=open(os.devnull), stderr=subprocess.STDOUT)
         subprocess.call(["ip", "route", "add", "default", "via", wii_gateway, "dev",
-                         self.interface_wiiu[0], "table", "2"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+                         self.interface_wiiu[0], "table", table_2], stdout=open(os.devnull), stderr=subprocess.STDOUT)
         # default route for the selection process of normal internet-traffic
         subprocess.call(["ip", "route", "add", "default", "scope", "global", "nexthop", "via",
                          self.gateway, "dev", self.interface_normal[0]], stdout=open(os.devnull),
@@ -647,6 +680,7 @@ class InterfaceUtil:
             return "5." in subprocess.check_output(["iwlist", interface, "frequency"])
         except subprocess.CalledProcessError:
             return False
+
 
 if __name__ == '__main__':
     try:
