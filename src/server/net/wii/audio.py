@@ -1,5 +1,6 @@
 import construct
 
+from src.server.data.args import Args
 from src.common.data import constants
 from src.server.data.config import ConfigServer
 from src.server.net.server.audio import ServiceAUD
@@ -51,7 +52,7 @@ class AudioHandler(ServiceBase):
         # ignore vid_format packets for now
         if h.packet_type == 0:
             seq_ok = self.update_seq_id(h.seq_id)
-            if not seq_ok:
+            if not seq_ok and Args.args.debug:
                 print 'astrm bad seq_id'
             if h.fmt != 1 or h.channel != 0:
                 raise Exception('astrm currently only handles 48kHz PCM stereo')

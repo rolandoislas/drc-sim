@@ -1,5 +1,6 @@
 import construct
 
+from src.server.data.args import Args
 from src.common.data import constants
 from src.server.net import sockets
 
@@ -101,9 +102,11 @@ class CommandHandler:
         self.send_response_cmd0(h, r)
 
     def cmd0(self, h, packet):
-        print 'CMD0:%i:%i' % (h.id_primary, h.id_secondary)
+        if Args.args.debug:
+            print 'CMD0:%i:%i' % (h.id_primary, h.id_secondary)
         if h.id_primary not in self.cmd0_handlers or h.id_secondary not in self.cmd0_handlers[h.id_primary]:
-            print 'unhandled', packet.encode('hex')
+            if Args.args.debug:
+                print 'unhandled', packet.encode('hex')
             return
         self.cmd0_handlers[h.id_primary][h.id_secondary](h, packet)
 
@@ -114,7 +117,8 @@ class CommandHandler:
 
     # noinspection PyUnusedLocal
     def cmd2(self, h, packet):
-        print 'TIME base {:04x} seconds {:08x}'.format(h.JDN_base, h.seconds)
+        if Args.args.debug:
+            print 'TIME base {:04x} seconds {:08x}'.format(h.JDN_base, h.seconds)
         self.send_response(h)
 
     def ack(self, h):

@@ -4,7 +4,6 @@ from src.common.data import constants
 from src.common.net.codec import Codec
 from src.server.control.util.controller import Controller
 from src.server.net import sockets
-from src.server.net.sockets import Sockets
 
 
 class ServiceCMD:
@@ -27,7 +26,7 @@ class ServiceCMD:
 
     @staticmethod
     def register_client(address):
-        Sockets.client_sockets[address] = ServiceCMD
+        sockets.Sockets.add_client_socket(address, ServiceCMD)
 
     @classmethod
     def broadcast(cls, command, data=""):
@@ -35,9 +34,8 @@ class ServiceCMD:
             if sockets.Sockets.client_sockets[address].__name__ == ServiceCMD.__name__:
                 try:
                     sockets.Sockets.SERVER_CMD_S.sendto(Codec.encode_command(command, data), address)
-                except socket.error, e:
-                    print e.strerror
-                    del sockets.Sockets.client_sockets[address]
+                except socket.error:
+                    sockets.Sockets.remove_client_socket(address)
 
 
 ServiceCMD = ServiceCMD()

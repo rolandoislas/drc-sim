@@ -19,6 +19,5 @@ class ServiceAUD:
             if sockets.Sockets.client_sockets[sock].__name__ == ServiceAUD.__name__:
                 try:
                     sock.sendall(Codec.encode(packet))
-                except socket.error, e:
-                    print e.strerror
-                    del sockets.Sockets.client_sockets[sock]
+                except socket.error:
+                    sockets.Sockets.remove_client_socket(sock)
