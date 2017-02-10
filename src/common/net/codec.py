@@ -32,7 +32,7 @@ class Codec:
         return data
 
     @classmethod
-    def encode_command(cls, name, data):
+    def encode_command(cls, name, data=""):
         """
         Encode command
         :param name: command name

@@ -21,4 +21,4 @@ class Server:
     @staticmethod
     def add_media_client(sock):
         client, address = sock.accept()
-        sockets.Sockets.client_sockets[client] = socket_handlers.SocketHandlers.server_media_handlers[sock]
+        sockets.Sockets.add_client_socket((client, address), socket_handlers.SocketHandlers.server_media_handlers[sock])

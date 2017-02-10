@@ -1,6 +1,3 @@
-import socket
-
-from src.common.net.codec import Codec
 from src.server.net import sockets
 
 
@@ -15,12 +12,4 @@ class ServiceAUD:
 
     @classmethod
     def broadcast(cls, packet):
-        encoded_packet = None
-        for sock in sockets.Sockets.client_sockets.keys():
-            if sockets.Sockets.client_sockets[sock].__name__ == ServiceAUD.__name__:
-                if not encoded_packet:
-                    encoded_packet = Codec.encode(packet)
-                try:
-                    sock.sendall(encoded_packet)
-                except socket.error:
-                    sockets.Sockets.remove_client_socket(sock)
+        sockets.Sockets.broadcast_media_packet(packet, ServiceAUD.__name__)

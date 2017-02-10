@@ -12,8 +12,6 @@ import sys
 import time
 import traceback
 
-import select
-
 
 class DrcSimHelper:
     def __init__(self):
@@ -316,7 +314,7 @@ class NetworkCommand(Command):
     def stop(self):
         if self.wpa_supplicant_process and not self.wpa_supplicant_process.poll():
             self.wpa_supplicant_process.terminate()
-            # self.kill_wpa()
+        self.kill_wpa()
 
     @staticmethod
     def kill_wpa():
@@ -412,7 +410,8 @@ class CommandRunServer(NetworkCommand):
         log = open(os.path.join(self.parent.log_path, "drc-sim-backend.log"), "w") if self.parent.args.log else \
             open(os.devnull, "w")
         log.write("-" * 80 + "\nStarted drc-sim-backend\n")
-        self.drc_sim_backend_process = subprocess.Popen([sys.executable, drc_sim_path],
+        self.drc_sim_backend_process = subprocess.Popen([sys.executable, drc_sim_path,
+                                                         "--debug" if self.parent.args.log else ""],
                                                         stdout=log, stderr=subprocess.STDOUT)
 
     def add_route(self):

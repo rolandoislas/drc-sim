@@ -23,6 +23,8 @@ class ServiceCMD:
             Controller.set_touch_input(data)
         elif command == constants.COMMAND_INPUT_JOYSTICK:
             Controller.set_joystick_input(data)
+        elif command == constants.COMMAND_PING:
+            sockets.Sockets.SERVER_CMD_S.sendto(Codec.encode_command(constants.COMMAND_PONG), address)
 
     @staticmethod
     def register_client(address):
@@ -30,12 +32,7 @@ class ServiceCMD:
 
     @classmethod
     def broadcast(cls, command, data=""):
-        for address in sockets.Sockets.client_sockets.keys():
-            if sockets.Sockets.client_sockets[address].__name__ == ServiceCMD.__name__:
-                try:
-                    sockets.Sockets.SERVER_CMD_S.sendto(Codec.encode_command(command, data), address)
-                except socket.error:
-                    sockets.Sockets.remove_client_socket(address)
+        sockets.Sockets.broadcast_command_packet(command, data, ServiceCMD.__name__)
 
 
 ServiceCMD = ServiceCMD()
