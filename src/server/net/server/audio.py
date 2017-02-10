@@ -15,9 +15,12 @@ class ServiceAUD:
 
     @classmethod
     def broadcast(cls, packet):
+        encoded_packet = None
         for sock in sockets.Sockets.client_sockets.keys():
             if sockets.Sockets.client_sockets[sock].__name__ == ServiceAUD.__name__:
+                if not encoded_packet:
+                    encoded_packet = Codec.encode(packet)
                 try:
-                    sock.sendall(Codec.encode(packet))
+                    sock.sendall(encoded_packet)
                 except socket.error:
                     sockets.Sockets.remove_client_socket(sock)
