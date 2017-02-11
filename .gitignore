@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .idea
 .pypy/
+build/
+dist/
+*.egg-info/
+setup.cfg
+temp/

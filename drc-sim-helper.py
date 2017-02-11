@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import traceback
+from distutils import spawn
 
 
 class DrcSimHelper:
@@ -407,12 +408,15 @@ class CommandRunServer(NetworkCommand):
 
     def start_drc_sim_backend(self):
         drc_sim_path = os.path.join(os.path.dirname(__file__), "drc-sim-backend.py")
+        if not os.path.exists(drc_sim_path):
+            drc_sim_path = os.path.abspath(spawn.find_executable("drc-sim-backend.py"))
         log = open(os.path.join(self.parent.log_path, "drc-sim-backend.log"), "w") if self.parent.args.log else \
             open(os.devnull, "w")
         log.write("-" * 80 + "\nStarted drc-sim-backend\n")
-        self.drc_sim_backend_process = subprocess.Popen([sys.executable, drc_sim_path,
-                                                         "--debug" if self.parent.args.log else ""],
-                                                        stdout=log, stderr=subprocess.STDOUT)
+        command = [sys.executable, drc_sim_path]
+        if self.parent.args.log:
+            command.append("--debug")
+        self.drc_sim_backend_process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
 
     def add_route(self):
         wii_local_ip = "192.168.1.11"
@@ -427,8 +431,9 @@ class CommandRunServer(NetworkCommand):
         subprocess.call(["ip", "addr", "flush", "dev", self.interface_wiiu[0]], stdout=open(os.devnull),
                         stderr=subprocess.STDOUT)
         for interface in self.interfaces_normal:
-            subprocess.call(["ip", "addr", "flush", "dev", interface[0]], stdout=open(os.devnull),
-                            stderr=subprocess.STDOUT)
+            if interface[0] != "lo":
+                subprocess.call(["ip", "addr", "flush", "dev", interface[0]], stdout=open(os.devnull),
+                                stderr=subprocess.STDOUT)
         # This creates two different routing tables, that we use based on the source-address.
         subprocess.check_call(["ip", "rule", "add", "from", self.ip, "table", table_1], stdout=open(os.devnull),
                               stderr=subprocess.STDOUT)

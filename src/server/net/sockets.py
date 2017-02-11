@@ -1,11 +1,11 @@
 import socket
 
+from src.common.net.codec import Codec
 from src.server.data.args import Args
 from src.common.data import constants
 
 
 class Sockets:
-
     def __init__(self):
         self.WII_MSG_S = None
         self.WII_VID_S = None
@@ -93,7 +93,7 @@ class Sockets:
                 if not encoded_packet:
                     encoded_packet = Codec.encode(packet)
                 try:
-                    print "packet size: " + socket_type + ": " + str(len(encoded_packet))
+                    # print "packet size: " + socket_type + ": " + str(len(encoded_packet))
                     sock_addr_pair[0].sendall(encoded_packet)
                 except socket.error:
                     Sockets.remove_client_socket(sock_addr_pair[1])
@@ -106,5 +106,6 @@ class Sockets:
                     Sockets.SERVER_CMD_S.sendto(Codec.encode_command(command, data), address)
                 except socket.error:
                     Sockets.remove_client_socket(address)
+
 
 Sockets = Sockets()
