@@ -11,5 +11,5 @@ setup(name='drcsim',
       packages=find_packages(),
       include_package_data=True,
       data_files=[('resources/config', ['resources/config/get_psk.conf'])],
-      scripts=['drc-sim-backend.py', 'drc-sim-helper.py', 'drc-sim-frontend.py']
+      scripts=['drc-sim-backend.py', 'drc-sim-helper.py']
       )
