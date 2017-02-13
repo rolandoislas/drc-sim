@@ -13,6 +13,8 @@ import time
 import traceback
 from distutils import spawn
 
+import pkg_resources
+
 
 class DrcSimHelper:
     def __init__(self):
@@ -566,7 +568,14 @@ class CommandGetKey(NetworkCommand):
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
         orig_conf = os.path.join(os.path.dirname(__file__), "resources/config/get_psk.conf")
-        shutil.copyfile(orig_conf, tmp_dir + conf_name)
+        if not os.path.exists(orig_conf):
+            orig_conf = pkg_resources.resource_string(pkg_resources.Requirement.parse("drcsim"),
+                                                      "resources/config/get_psk.conf")
+            conf_tmp = open(self.tmp_conf_psk, "w")
+            conf_tmp.write(orig_conf)
+            conf_tmp.close()
+        else:
+            shutil.copyfile(orig_conf, tmp_dir + conf_name)
         # Start wpa_supplicant
         self.stop()
         self.start_wpa_supplicant(tmp_dir + conf_name)
