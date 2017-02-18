@@ -261,14 +261,15 @@ class NetworkCommand(Command):
         self.requesting_interface_wii_input = True
 
     def prompt_normal_interface(self):
+		# Get interfaces
+		self.interfaces_normal = InterfaceUtil.get_all_interfaces()
+        self.interfaces_normal.remove(self.interface_wiiu)
         # Check cli arg
         if hasattr(self.parent.args, "normal_interface"):
             self.interface_normal = [self.parent.args.normal_interface]
             self.forward_method()
             return
         # Prompt
-        self.interfaces_normal = InterfaceUtil.get_all_interfaces()
-        self.interfaces_normal.remove(self.interface_wiiu)
         if len(self.interfaces_normal) == 0:
             self.parent.stop("No interfaces found.")
         self.prompt_user_input_choice(self.interfaces_normal,
