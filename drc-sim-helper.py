@@ -245,17 +245,20 @@ class NetworkCommand(Command):
                 pass
 
     def prompt_wiiu_interface(self):
+        # Get interfaces
+        self.interfaces_wiiu = InterfaceUtil.get_wiiu_compatible_interfaces() if not self.parent.args.all_interfaces \
+            else InterfaceUtil.get_all_interfaces()
+        if len(self.interfaces_wiiu) == 0 and not self.parent.args.run_server:
+            self.parent.stop("No Wii U compatible wireless interfaces found. Add --all-interfaces to show all "
+                             "interfaces.")
         # Check if arg passed in cli
         if hasattr(self.parent.args, "wiiu_interface"):
-            self.interface_wiiu = [self.parent.args.wiiu_interface]
+            for interface in InterfaceUtil.get_all_interfaces():
+                if interface[0] == self.parent.args.wiiu_interface:
+                    self.interface_wiiu = interface
             self.forward_method()
             return
         # Prompt
-        self.interfaces_wiiu = InterfaceUtil.get_wiiu_compatible_interfaces() if not self.parent.args.all_interfaces \
-            else InterfaceUtil.get_all_interfaces()
-        if len(self.interfaces_wiiu) == 0:
-            self.parent.stop("No Wii U compatible wireless interfaces found. Add --all-interfaces to show all "
-                             "interfaces.")
         self.prompt_user_input_choice(self.interfaces_wiiu,
                                       ["Select a wireless interface that will be used for connections to a Wii U."])
         self.requesting_interface_wii_input = True
@@ -265,14 +268,16 @@ class NetworkCommand(Command):
         self.interfaces_normal = InterfaceUtil.get_all_interfaces()
         if self.interface_wiiu in self.interfaces_normal:
             self.interfaces_normal.remove(self.interface_wiiu)
+        if len(self.interfaces_normal) == 0:
+            self.parent.stop("No interfaces found.")
         # Check cli arg
         if hasattr(self.parent.args, "normal_interface"):
-            self.interface_normal = [self.parent.args.normal_interface]
+            for interface in self.interfaces_normal:
+                if interface[0] == self.parent.args.normal_interface:
+                    self.interface_normal = interface
             self.forward_method()
             return
         # Prompt
-        if len(self.interfaces_normal) == 0:
-            self.parent.stop("No interfaces found.")
         self.prompt_user_input_choice(self.interfaces_normal,
                                       ["Select an interface that will be used for a standard network "
                                        "connection."])
