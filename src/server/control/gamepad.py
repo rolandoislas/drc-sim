@@ -3,6 +3,8 @@ import socket
 
 import time
 
+import sys
+
 from src.server.data.args import Args
 from src.server.control.server import Server
 from src.server.control.util.controller import Controller
@@ -50,8 +52,7 @@ class Gamepad:
                 self.has_received_packet = True
                 print "Received Wii U packet"
             # Update last packet time
-            if Args.args.debug:
-                self.wii_packet_time = time.time()
+            self.wii_packet_time = time.time()
             for sock in rlist:
                 # Wii socket
                 if sock in socket_handlers.SocketHandlers.wii_handlers.keys():
@@ -77,3 +78,6 @@ class Gamepad:
         if Args.args.debug and time.time() - self.wii_packet_time >= 10:
             self.wii_packet_time = time.time()
             print "No Wii U packets received in the last 10 seconds"
+        if time.time() - self.wii_packet_time >= 60:
+            print "No Wii U packets received in the last minute. Shutting down."
+            sys.exit(1)
