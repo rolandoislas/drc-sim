@@ -175,6 +175,8 @@ class CommandHelp(Command):
             self.parent.set_command(CommandGetKey)
         elif command == "run_server" or self.parent.args.run_server:
             self.parent.set_command(CommandRunServer)
+        elif command == "route":
+            self.parent.set_command(CommandRoute)
 
     def show_main(self):
         self.clear()
@@ -185,6 +187,7 @@ class CommandHelp(Command):
         self.write(4, 0, "quit  exit the program")
         self.write(5, 0, "get_key   obtain the ssid, bssid, and psk from the wii u")
         self.write(6, 0, "run_server    connects to the wii u and runs drc-sim-backend (needs auth details)")
+        self.write(7, 0, "route    adds network routes (dev)")
 
 
 class NetworkCommand(Command):
@@ -503,6 +506,15 @@ class CommandRunServer(NetworkCommand):
         ip_prefix = ".".join([ip_split[0], ip_split[1], ip_split[2]])
         self.subnet = ip_prefix + ".0/24"
         self.gateway = ip_prefix + ".1"
+
+
+class CommandRoute(CommandRunServer):
+    def stop(self):
+        pass
+
+    def start_processes(self, restart=False):
+        self.add_route()
+        self.parent.stop("Added route")
 
 
 class CommandGetKey(NetworkCommand):
