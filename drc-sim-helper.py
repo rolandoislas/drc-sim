@@ -13,6 +13,7 @@ import time
 import traceback
 from distutils import spawn
 
+import netifaces as netifaces
 import pkg_resources
 
 
@@ -487,17 +488,7 @@ class CommandRunServer(NetworkCommand):
 
     def calulate_network_details(self):
         # Get interface ip
-        try:
-            interface_info = subprocess.check_output(["ifconfig", self.interface_normal[0]])
-            # this is here just to error if the wii u interface name is invalid
-            subprocess.check_call(["ifconfig", self.interface_wiiu[0]])
-        except subprocess.CalledProcessError:
-            self.parent.stop("Invalid interface specified.")
-            return
-        for line in interface_info.splitlines():
-            if "inet addr:" in line:
-                self.ip = line.strip().replace("inet addr:", "").split()[0]
-                break
+        self.ip = InterfaceUtil.get_ip(self.interfaces_normal[0][0])
         # Check if there is an ip
         if not self.ip:
             self.parent.stop("Selected normal interface is not connected to a network.")
@@ -697,14 +688,8 @@ class InterfaceUtil:
     @classmethod
     def get_all_interfaces(cls):
         interfaces = []
-        try:
-            ifconfig_output = subprocess.check_output(["ifconfig", "-a"]).splitlines()
-        except subprocess.CalledProcessError:
-            return []
-        for line in ifconfig_output:
-            if len(line) > 0 and line[0] != " ":
-                sline = line.strip().split(" ")
-                interfaces.append([sline[0], sline[len(sline) - 1]])
+        for interface in netifaces.interfaces():
+            interfaces.append([interface, cls.get_mac(interface)])
         return interfaces
 
     @classmethod
@@ -713,6 +698,14 @@ class InterfaceUtil:
             return "5." in subprocess.check_output(["iwlist", interface, "frequency"])
         except subprocess.CalledProcessError:
             return False
+
+    @classmethod
+    def get_ip(cls, interface):
+        return netifaces.ifaddresses(interface)[netifaces.AF_INET][0]["addr"]
+
+    @classmethod
+    def get_mac(cls, interface):
+        return netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]["addr"]
 
 
 if __name__ == '__main__':
