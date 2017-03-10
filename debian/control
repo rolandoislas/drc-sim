@@ -1,0 +1,14 @@
+Source: drc-sim
+Section: python
+Priority: extra
+Maintainer: Rolando Islas <admin@rolandoislas.com>
+Build-Depends: debhelper (>= 9), python, dh-virtualenv (>= 0.8)
+Standards-Version: 3.9.5
+
+Package: drc-sim
+Architecture: any
+Pre-Depends: dpkg (>= 1.16.1), python2.7, ${misc:Pre-Depends}
+Depends: ${python:Depends}, ${misc:Depends}, python2.7-dev, python-pip, libffi-dev, zlib1g-dev,
+ libjpeg62-turbo-dev | libjpeg8-dev, net-tools, wireless-tools, sysvinit-utils, psmisc, libavcodec-dev, libswscale-dev,
+ rfkill, isc-dhcp-client, wpasupplicant-drc
+Description: Wii U gamepad emulator.

@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+override_dh_strip:
+	dh_strip --exclude=cffi --exclude=PIL
+
+override_dh_shlibdeps:
+	dh_shlibdeps --exclude=cffi --exclude=PIL
+
+%:
+	dh $@ --with python-virtualenv
