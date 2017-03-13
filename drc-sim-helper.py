@@ -488,7 +488,7 @@ class CommandRunServer(NetworkCommand):
 
     def calulate_network_details(self):
         # Get interface ip
-        self.ip = InterfaceUtil.get_ip(self.interfaces_normal[0][0])
+        self.ip = InterfaceUtil.get_ip(self.interface_normal[0])
         # Check if there is an ip
         if not self.ip:
             self.parent.stop("Selected normal interface is not connected to a network.")
