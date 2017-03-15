@@ -18,4 +18,6 @@ class Args:
                                 help="finer debug output")
         arg_parser.add_argument("-v", "--verbose", action="store_const", const=True, default=False,
                                 help="verbose debug output")
+        arg_parser.add_argument("-c", "--cli", action="store_const", const=True, default=False,
+                                help="disable gui")
         Args.args = arg_parser.parse_args()

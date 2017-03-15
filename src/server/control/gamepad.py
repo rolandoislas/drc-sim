@@ -1,11 +1,10 @@
-import logging
 import select
 import socket
 import time
+from threading import Thread
 
 from src.server.control.server import Server
 from src.server.control.util.controller import Controller
-from src.server.data.args import Args
 from src.server.data.config_server import ConfigServer
 from src.server.net import socket_handlers
 from src.server.net import sockets
@@ -13,24 +12,34 @@ from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class Gamepad:
+    NO_PACKETS = "NO_PACKETS"
+    STOPPED = "STOPPED"
+    RUNNING = "RUNNING"
+    WAITING_FOR_PACKET = "WAITING_FOR_PACKET"
+
     def __init__(self):
-        Args.parse_args()
-        self.set_logging_level()
+        self.backend_thread = None
+        self.status = self.STOPPED
+        self.status_change_listeners = []
+        self.running = False
+        self.wii_packet_time = time.time()
+        self.has_received_packet = False
+        self.server = Server()
+
+    def start(self):
         ConfigServer.load()
         ConfigServer.save()
         self.print_init()
-        self.server = Server()
         sockets.Sockets.connect()
         socket_handlers.SocketHandlers.create()
-        self.has_received_packet = False
-        self.wii_packet_time = time.time()
+        self.running = True
+        LoggerBackend.debug("Starting backend thread")
+        self.backend_thread = Thread(target=self.update)
+        self.backend_thread.start()
+        LoggerBackend.debug("Post backend thread")
 
     def print_init(self):
         LoggerBackend.info("Started drc-sim-backend")
-        LoggerBackend.debug("Debug logging enabled")
-        LoggerBackend.extra("Extra debug logging enabled")
-        LoggerBackend.finer("Finer debug logging enabled")
-        LoggerBackend.verbose("Verbose logging enabled")
         self.print_config()
         LoggerBackend.info("Waiting for Wii U packets")
 
@@ -67,31 +76,44 @@ class Gamepad:
                     self.server.handle_client_command_packet(sock)
 
     def update(self):
-        self.check_last_packet_time()
-        self.handle_sockets()
-        Controller.update()
+        while self.running:
+            try:
+                self.check_last_packet_time()
+                self.handle_sockets()
+                Controller.update()
+            except Exception, e:
+                LoggerBackend.throw(e)
 
-    @staticmethod
-    def close():
-        for s in socket_handlers.SocketHandlers.wii_handlers.itervalues():
-            s.close()
+    def close(self):
+        if not self.running:
+            LoggerBackend.debug("Ignored stop request: already stopped")
+            return
+        LoggerBackend.debug("Stopping backend")
+        self.running = False
+        try:
+            self.backend_thread.join()
+        except RuntimeError, e:
+            LoggerBackend.exception(e)
+        LoggerBackend.debug("Closing handlers")
+        if socket_handlers.SocketHandlers.wii_handlers:
+            for s in socket_handlers.SocketHandlers.wii_handlers.itervalues():
+                s.close()
+        LoggerBackend.debug("Closing sockets")
+        sockets.Sockets.close()
+        self.status_change_listeners = []
+        LoggerBackend.debug("Backend closed")
 
     def check_last_packet_time(self):
-        if time.time() - self.wii_packet_time >= 60:
-            LoggerBackend.throw("No Wii U packets received in the last minute. Shutting down.")
-
-    @staticmethod
-    def set_logging_level():
-        if Args.args.debug:
-            LoggerBackend.set_level(logging.DEBUG)
-        elif Args.args.extra:
-            LoggerBackend.set_level(LoggerBackend.EXTRA)
-        elif Args.args.finer:
-            LoggerBackend.set_level(LoggerBackend.FINER)
-        elif Args.args.verbose:
-            LoggerBackend.set_level(LoggerBackend.VERBOSE)
+        if not self.has_received_packet:
+            status = self.WAITING_FOR_PACKET
+        elif time.time() - self.wii_packet_time >= 60:
+            status = Gamepad.NO_PACKETS
         else:
-            LoggerBackend.set_level(logging.INFO)
+            status = Gamepad.RUNNING
+        if self.status != status:
+            self.status = status
+            for listener in self.status_change_listeners:
+                listener(status)
 
     @staticmethod
     def print_config():
@@ -99,3 +121,6 @@ class Gamepad:
         LoggerBackend.info("Config: Input Delay %f", ConfigServer.input_delay)
         LoggerBackend.info("Config: Image Quality %d", ConfigServer.quality)
         LoggerBackend.info("Config: Stream Audio %s", ConfigServer.stream_audio)
+
+    def add_status_change_listener(self, callback):
+        self.status_change_listeners.append(callback)

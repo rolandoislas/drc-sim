@@ -1,40 +1,24 @@
 import logging
 import os
 import shutil
-import sys
 
 from src.server.data import constants
 
 
 class Logger:
     level = logging.INFO
+    INFO = logging.INFO
+    DEBUG = logging.DEBUG
     EXTRA = logging.DEBUG - 1
     FINER = logging.DEBUG - 2
     VERBOSE = logging.DEBUG - 3
     logger = logging.getLogger("drcsim")
-    consoleHandler = None
-    fileHandler = None
+    console_handler = None
+    file_handler = None
 
     def __init__(self, name=None):
-        if not Logger.logger.handlers:
-            # Logger
-            if name:
-                Logger.logger = logging.getLogger(name)
-            # Console output
-            Logger.consoleHandler = logging.StreamHandler()
-            Logger.consoleHandler.setFormatter(
-                logging.Formatter("%(asctime)s %(levelname)s:%(name)s %(message)s"))
-            Logger.logger.addHandler(Logger.consoleHandler)
-            # File output
-            log_path = os.path.join(constants.LOG_PATH, Logger.logger.name + ".log")
-            if not os.path.exists(constants.LOG_PATH):
-                os.mkdir(constants.LOG_PATH)
-            if os.path.exists(log_path):
-                shutil.copyfile(log_path, log_path.replace(".log", "-1.log"))
-                os.remove(log_path)
-            Logger.fileHandler = logging.FileHandler(log_path)
-            Logger.fileHandler.setFormatter(Logger.consoleHandler.formatter)
-            Logger.logger.addHandler(Logger.fileHandler)
+        if not Logger.console_handler or not Logger.file_handler:
+            Logger.logger, Logger.console_handler, Logger.file_handler = self.create_logger(name)
         # Level names
         logging.addLevelName(Logger.EXTRA, "EXTRA")
         logging.addLevelName(Logger.FINER, "FINER")
@@ -60,7 +44,8 @@ class Logger:
     def set_level(cls, level):
         cls.level = level
         cls.logger.setLevel(cls.level)
-        cls.consoleHandler.setLevel(cls.level)
+        cls.console_handler.setLevel(cls.level)
+        cls.file_handler.setLevel(cls.level)
 
     @classmethod
     def warn(cls, message, *args):
@@ -68,15 +53,16 @@ class Logger:
 
     @classmethod
     def throw(cls, exception, message=None, *args):
-        cls.logger.error("=" * 50 + "[Crash]" + "=" * 50)
+        cls.logger.error(str("=" * 50 + " [ CRASH ] " + "=" * 50))
         if message:
             cls.logger.error(message, *args)
         if isinstance(exception, Exception):
             cls.logger.exception(exception)
         else:
             cls.logger.error(exception)
-        cls.logger.error("=" * 50 + "[Crash]" + "=" * 50)
-        sys.exit(1)
+        cls.logger.error(str("=" * 50 + " [ CRASH ] " + "=" * 50))
+        if cls != Logger:
+            raise exception
 
     @classmethod
     def finer(cls, message, *args):
@@ -85,3 +71,31 @@ class Logger:
     @classmethod
     def exception(cls, exception, *args):
         cls.logger.log(cls.EXTRA, exception, *args, exc_info=1)
+
+    @classmethod
+    def get_level(cls):
+        return cls.level
+
+    @staticmethod
+    def create_logger(name):
+        logger = logging.getLogger(name)
+        format_str = "%(asctime)s %(levelname)s:%(name)s %(message)s"
+        # Console output
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(format_str))
+        logger.addHandler(console_handler)
+        # File output
+        log_path = os.path.join(constants.PATH_LOG_DIR, logger.name + ".log")
+        if not os.path.exists(constants.PATH_ROOT):
+            os.mkdir(constants.PATH_ROOT)
+        if not os.path.exists(constants.PATH_LOG_DIR):
+            os.mkdir(constants.PATH_LOG_DIR)
+        if os.path.exists(log_path):
+            shutil.copyfile(log_path, log_path.replace(".log", "-1.log"))
+            os.remove(log_path)
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(logging.Formatter(format_str))
+        logger.addHandler(file_handler)
+        return logger, console_handler, file_handler
+
+Logger("drcsim")

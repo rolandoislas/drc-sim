@@ -60,6 +60,34 @@ class Sockets:
         self.SERVER_AUD_S = self.tcp_server(self.SERVER_IP, constants.PORT_SERVER_AUD)
         self.SERVER_CMD_S = self.udp_service(self.SERVER_IP, constants.PORT_SERVER_CMD)
 
+    def close(self):
+        LoggerBackend.debug("Closing sockets")
+        if self.WII_MSG_S:
+            # self.WII_MSG_S.shutdown(socket.SHUT_RDWR)
+            self.WII_MSG_S.close()
+        if self.WII_VID_S:
+            # self.WII_VID_S.shutdown(socket.SHUT_RDWR)
+            self.WII_VID_S.close()
+        if self.WII_AUD_S:
+            # self.WII_AUD_S.shutdown(socket.SHUT_RDWR)
+            self.WII_AUD_S.close()
+        if self.WII_CMD_S:
+            # self.WII_CMD_S.shutdown(socket.SHUT_RDWR)
+            self.WII_CMD_S.close()
+        if self.WII_HID_S:
+            # self.WII_HID_S.shutdown(socket.SHUT_RDWR)
+            self.WII_HID_S.close()
+        if self.SERVER_VID_S:
+            # self.SERVER_VID_S.shutdown(socket.SHUT_RDWR)
+            self.SERVER_VID_S.close()
+        if self.SERVER_AUD_S:
+            # self.SERVER_AUD_S.shutdown(socket.SHUT_RDWR)
+            self.SERVER_AUD_S.close()
+        if self.SERVER_CMD_S:
+            # self.SERVER_CMD_S.shutdown(socket.SHUT_RDWR)
+            self.SERVER_CMD_S.close()
+        LoggerBackend.debug("Closed sockets")
+
     @classmethod
     def remove_client_socket(cls, address):
         ip = address[0]
