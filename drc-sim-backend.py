@@ -2,23 +2,11 @@ import sys
 
 from src.server.control.gamepad import Gamepad
 
-
-class Backend:
-
-    def __init__(self):
-        self.gamepad = Gamepad()
-
-    def run(self):
-        self.gamepad.update()
-
-    def close(self):
-        self.gamepad.close()
-
-backend = Backend()
+gamepad = Gamepad()
 while True:
     try:
-        backend.run()
+        gamepad.update()
     except KeyboardInterrupt:
-        backend.close()
+        gamepad.close()
         sys.exit()
 

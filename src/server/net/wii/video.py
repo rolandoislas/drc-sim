@@ -5,12 +5,13 @@ from io import BytesIO
 import construct
 from PIL import Image
 
-from src.common.data import constants
-from src.server.data.config import ConfigServer
+from src.server.data import constants
+from src.server.data.config_server import ConfigServer
 from src.server.data.h264decoder import H264Decoder
 from src.server.net.server.video import ServiceVID
 from src.server.net.sockets import Sockets
 from src.server.net.wii.base import ServiceBase
+from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class VideoHandler(ServiceBase):
@@ -76,6 +77,7 @@ class VideoHandler(ServiceBase):
         return nals
 
     def update(self, packet):
+        LoggerBackend.verbose("Received video packet")
         h = self.header.parse(packet)
         is_idr = self.packet_is_idr(packet)
 

@@ -432,45 +432,19 @@ class CommandRunServer(NetworkCommand):
         self.drc_sim_backend_process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
 
     def add_route(self):
-        wii_local_ip = "192.168.1.11"
-        wii_subnet = "192.168.1.0/24"
-        wii_gateway = "192.168.1.1"
-        table_1 = "111"
-        table_2 = "112"
-        # Flush table in case they persisted
-        subprocess.call(["ip", "route", "flush", "table", table_1], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        subprocess.call(["ip", "route", "flush", "table", table_2], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        # Flush the device
-        subprocess.call(["ip", "addr", "flush", "dev", self.interface_wiiu[0]], stdout=open(os.devnull),
-                        stderr=subprocess.STDOUT)
-        for interface in self.interfaces_normal:
-            if interface[0] != "lo":
-                subprocess.call(["ip", "addr", "flush", "dev", interface[0]], stdout=open(os.devnull),
-                                stderr=subprocess.STDOUT)
-        # This creates two different routing tables, that we use based on the source-address.
-        subprocess.check_call(["ip", "rule", "add", "from", self.ip, "table", table_1], stdout=open(os.devnull),
-                              stderr=subprocess.STDOUT)
-        subprocess.call(["ip", "rule", "add", "from", wii_local_ip, "table", table_2], stdout=open(os.devnull),
-                        stderr=subprocess.STDOUT)
-        # Assign an ip to the interface.
-        subprocess.call(["ifconfig", self.interface_wiiu[0], wii_local_ip], stdout=open(os.devnull),
-                        stderr=subprocess.STDOUT)
-        # Configure first routing table
-        subprocess.call(["ip", "route", "add", self.subnet, "dev", self.interface_normal[0],
-                         "scope", "link", "table", table_1], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        subprocess.call(["ip", "route", "add", "default", "via", self.gateway, "dev",
-                         self.interface_normal[0], "table", table_1], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        # Configure second routing table
-        subprocess.call(["ip", "route", "add", wii_subnet, "dev", self.interface_wiiu[0], "scope",
-                         "link", "table", table_2], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        subprocess.call(["ip", "route", "add", "default", "via", wii_gateway, "dev",
-                         self.interface_wiiu[0], "table", table_2], stdout=open(os.devnull), stderr=subprocess.STDOUT)
-        # default route for the selection process of normal internet-traffic
-        subprocess.call(["ip", "route", "add", "default", "scope", "global", "nexthop", "via",
-                         self.gateway, "dev", self.interface_normal[0]], stdout=open(os.devnull),
-                        stderr=subprocess.STDOUT)
         # Setup dhcp
-        subprocess.call(["dhclient"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+        try:
+            subprocess.check_call(["dhclient"], stdout=open(os.devnull), stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError:
+            self.parent.stop("Failed setup dhcp.")
+        # Prioritize normal interface
+        try:
+            subprocess.check_call(["ifmetric", self.interface_normal[0], "0"], stdout=open(os.devnull),
+                                  stderr=subprocess.STDOUT)
+            subprocess.check_call(["ifmetric", self.interface_wiiu[0], "1"], stdout=open(os.devnull),
+                                  stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError:
+            self.parent.stop("Failed to prioritize normal network interface.")
 
     def check_conf(self):
         # User needs auth details first

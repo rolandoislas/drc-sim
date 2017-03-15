@@ -1,36 +1,38 @@
+import logging
 import select
 import socket
-
 import time
 
-import sys
-
-from src.server.data.args import Args
 from src.server.control.server import Server
 from src.server.control.util.controller import Controller
-from src.server.data.config import ConfigServer
+from src.server.data.args import Args
+from src.server.data.config_server import ConfigServer
 from src.server.net import socket_handlers
 from src.server.net import sockets
+from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class Gamepad:
     def __init__(self):
+        Args.parse_args()
+        self.set_logging_level()
+        ConfigServer.load()
+        ConfigServer.save()
+        self.print_init()
         self.server = Server()
         sockets.Sockets.connect()
         socket_handlers.SocketHandlers.create()
-        ConfigServer.load()
-        ConfigServer.save()
-        Args.parse_args()
-        self.print_init()
         self.has_received_packet = False
         self.wii_packet_time = time.time()
 
-    @staticmethod
-    def print_init():
-        print "Started drc-sim-backend"
-        if Args.args.debug:
-            print "Debug logging enabled"
-        print "Waiting for Wii U packets"
+    def print_init(self):
+        LoggerBackend.info("Started drc-sim-backend")
+        LoggerBackend.debug("Debug logging enabled")
+        LoggerBackend.extra("Extra debug logging enabled")
+        LoggerBackend.finer("Finer debug logging enabled")
+        LoggerBackend.verbose("Verbose logging enabled")
+        self.print_config()
+        LoggerBackend.info("Waiting for Wii U packets")
 
     @staticmethod
     def handle_wii_packet(sock):
@@ -38,7 +40,7 @@ class Gamepad:
         try:
             socket_handlers.SocketHandlers.wii_handlers[sock].update(data)
         except socket.error, e:
-            print str(e) + str(e.errno)
+            LoggerBackend.warn(str(e) + str(e.errno))
 
     def handle_sockets(self):
         # Group all sockets
@@ -50,7 +52,7 @@ class Gamepad:
             # Notify once first packet is received
             if not self.has_received_packet:
                 self.has_received_packet = True
-                print "Received Wii U packet"
+                LoggerBackend.info("Received Wii U packet")
             # Update last packet time
             self.wii_packet_time = time.time()
             for sock in rlist:
@@ -75,9 +77,25 @@ class Gamepad:
             s.close()
 
     def check_last_packet_time(self):
-        if Args.args.debug and time.time() - self.wii_packet_time >= 10:
-            self.wii_packet_time = time.time()
-            print "No Wii U packets received in the last 10 seconds"
         if time.time() - self.wii_packet_time >= 60:
-            print "No Wii U packets received in the last minute. Shutting down."
-            sys.exit(1)
+            LoggerBackend.throw("No Wii U packets received in the last minute. Shutting down.")
+
+    @staticmethod
+    def set_logging_level():
+        if Args.args.debug:
+            LoggerBackend.set_level(logging.DEBUG)
+        elif Args.args.extra:
+            LoggerBackend.set_level(LoggerBackend.EXTRA)
+        elif Args.args.finer:
+            LoggerBackend.set_level(LoggerBackend.FINER)
+        elif Args.args.verbose:
+            LoggerBackend.set_level(LoggerBackend.VERBOSE)
+        else:
+            LoggerBackend.set_level(logging.INFO)
+
+    @staticmethod
+    def print_config():
+        LoggerBackend.info("Config: FPS %d", ConfigServer.fps)
+        LoggerBackend.info("Config: Input Delay %f", ConfigServer.input_delay)
+        LoggerBackend.info("Config: Image Quality %d", ConfigServer.quality)
+        LoggerBackend.info("Config: Stream Audio %s", ConfigServer.stream_audio)

@@ -1,6 +1,6 @@
 from cffi import FFI
 
-from src.common.data import constants
+from src.server.data import constants
 
 
 # TODO static alloc in_data and make interface for reading/writing directly to it

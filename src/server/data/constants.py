@@ -1,3 +1,5 @@
+import os
+
 # Port
 PORT_WII_MSG = 50010
 PORT_WII_VID = 50020
@@ -23,3 +25,6 @@ COMMAND_INPUT_JOYSTICK = "INPUT_JOYSTICK"
 COMMAND_VIBRATE = "VIBRATE"
 COMMAND_PING = "PING"
 COMMAND_PONG = "PONG"
+
+# Paths
+LOG_PATH = os.path.expanduser("~/.drc-sim/log/")

@@ -1,9 +1,8 @@
-import socket
-
-from src.common.data import constants
-from src.common.net.codec import Codec
+from src.server.data import constants
 from src.server.control.util.controller import Controller
 from src.server.net import sockets
+from src.server.net.codec import Codec
+from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class ServiceCMD:
@@ -13,6 +12,7 @@ class ServiceCMD:
         pass
 
     def update(self, address, command, data):
+        LoggerBackend.finer("Received command packet of type %s from client %s: %s" % (command, address, data))
         if command == constants.COMMAND_REGISTER:
             self.register_client(address)
         elif command == constants.COMMAND_INPUT_BUTTON:

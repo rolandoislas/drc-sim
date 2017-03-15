@@ -1,4 +1,4 @@
-from src.server.data.args import Args
+from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class MessageHandler:
@@ -7,8 +7,7 @@ class MessageHandler:
 
     @staticmethod
     def update(packet):
-        if Args.args.debug:
-            print 'MSG', packet.encode('hex')
+        LoggerBackend.debug('MSG: ' + packet.encode('hex'))
 
     def close(self):
         pass
