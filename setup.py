@@ -5,7 +5,7 @@ from distutils.core import setup
 from setuptools import find_packages
 
 setup(name='drcsim',
-      version='1.1',
+      version='1.3',
       description='Wii U gamepad simulator.',
       install_requires=['construct<2.8', 'Pillow==3.4.2', 'cffi==1.9.1', 'netifaces==0.10.5', 'pexpect==4.2.1'],
       packages=find_packages(),

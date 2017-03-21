@@ -99,7 +99,7 @@ class FrameRunServer(FrameTab):
         self.label_wpa_status.config(text=status)
         if status == WpaSupplicant.CONNECTED:
             LoggerGui.debug("Routing")
-            InterfaceUtil.dhclient()
+            InterfaceUtil.dhclient(self.wii_u_interface)
             InterfaceUtil.set_metric(self.normal_interface, 0)
             InterfaceUtil.set_metric(self.wii_u_interface, 1)
             LoggerGui.debug("Starting backend")

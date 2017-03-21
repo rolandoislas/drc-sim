@@ -57,9 +57,9 @@ class InterfaceUtil:
         ProcessUtil.call(["ifmetric", interface, str(metric)])
 
     @classmethod
-    def dhclient(cls):
+    def dhclient(cls, interface):
         ProcessUtil.call(["killall", "dhclient"])
-        ProcessUtil.call(["dhclient"])
+        ProcessUtil.call(["dhclient", interface])
 
     @classmethod
     def is_managed_by_network_manager(cls, interface):

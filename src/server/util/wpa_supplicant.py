@@ -184,8 +184,6 @@ class WpaSupplicant:
             wii_u_bssids = []
             while self.running and scan_tries > 0:
                 self.psk_thread_cli.sendline("scan")
-                LoggerWpa.debug("CLI expect waiting for scan start")
-                self.psk_thread_cli.expect("OK")
                 LoggerWpa.debug("CLI expect waiting for scan results available event")
                 self.psk_thread_cli.expect("<3>CTRL-EVENT-SCAN-RESULTS", timeout=60)
                 self.psk_thread_cli.sendline("scan_results")
