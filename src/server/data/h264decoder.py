@@ -13,7 +13,7 @@ class H264Decoder:
         self.ffi.cdef('''
             // AVCODEC
             
-            enum PixelFormat { PIX_FMT_YUV420P, PIX_FMT_RGB24, ... };
+            enum PixelFormat { AV_PIX_FMT_YUV420P, AV_PIX_FMT_RGB24, ... };
             
             void avcodec_register_all(void);
             
@@ -102,19 +102,19 @@ class H264Decoder:
         if self.sws_context is not None:
             self.ns.sws_freeContext(self.sws_context)
         self.sws_context = self.ns.sws_getContext(
-            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, self.ns.PIX_FMT_YUV420P,
-            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, self.ns.PIX_FMT_RGB24,
+            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, self.ns.AV_PIX_FMT_YUV420P,
+            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, self.ns.AV_PIX_FMT_RGB24,
             self.ns.SWS_FAST_BILINEAR,
             self.ffi.NULL,
             self.ffi.NULL, self.ffi.NULL)
         
-        bytes_req = self.ns.avpicture_get_size(self.ns.PIX_FMT_RGB24, constants.WII_VIDEO_WIDTH,
+        bytes_req = self.ns.avpicture_get_size(self.ns.AV_PIX_FMT_RGB24, constants.WII_VIDEO_WIDTH,
                                                constants.WII_VIDEO_HEIGHT)
         self.out_buffer = self.ffi.new('uint8_t [%i]' % bytes_req)
         self.ns.avpicture_fill(
             self.ffi.cast('struct AVPicture *', self.out_frame),
             self.out_buffer,
-            self.ns.PIX_FMT_RGB24,
+            self.ns.AV_PIX_FMT_RGB24,
             constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT)
 
     def get_image_buffer(self, encoded_nalu):
