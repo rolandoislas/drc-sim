@@ -3,6 +3,7 @@ import os
 import shutil
 
 from src.server.data import constants
+from src.server.util.os_util import OsUtil
 
 
 class Logger:
@@ -54,6 +55,7 @@ class Logger:
     @classmethod
     def throw(cls, exception, message=None, *args):
         cls.logger.error(str("=" * 50 + " [ CRASH ] " + "=" * 50))
+        OsUtil.log_info(cls.logger)
         if message:
             cls.logger.error(message, *args)
         if isinstance(exception, Exception):
