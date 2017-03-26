@@ -172,7 +172,7 @@ install_launch_script() {
 install_desktop_launcher() {
     echo "Installing desktop launcher"
     launcher="${INSTALL_DIR}drc/resources/bin/drc-sim-backend.desktop"
-    cp ${launch_script} /usr/share/applications/ &> /dev/null || return 1
+    cp ${launcher} /usr/share/applications/ &> /dev/null || return 1
     chmod +x /usr/share/applications/drc-sim-backend.desktop &> /dev/null || return 1
     echo "Installing icon"
     icon="${INSTALL_DIR}drc/resources/image/icon.png"
