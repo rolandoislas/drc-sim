@@ -17,14 +17,14 @@ check_root() {
 
 start_drc_sim() {
     # Activate venv
-    source "${INSTALL_DIR}bin/activate" &> /dev/null || return 1
+    source "${INSTALL_DIR}bin/activate" &> /dev/null || exit 1
     # Start
-    drc-sim-backend.py &> /dev/null || return 1
+    drc-sim-backend.py "$@"
 }
 
 main() {
     check_root
-    start_drc_sim
+    start_drc_sim "$@"
 }
 
-main
+main "$@"
