@@ -176,7 +176,7 @@ install_desktop_launcher() {
     chmod +x /usr/share/applications/drc-sim-backend.desktop &> /dev/null || return 1
     echo "Installing icon"
     icon="${INSTALL_DIR}drc/resources/image/icon.png"
-    cp ${icon} /usr/share/icons/hicolor/512x512/apps/ &> /dev/null || echo "Failed to install icon"
+    cp ${icon} /usr/share/icons/hicolor/512x512/apps/drcsimbackend.png &> /dev/null || echo "Failed to install icon"
     update-icon-caches /usr/share/icons/* &> /dev/null || echo "Failed to update icon cache."
 }
 
