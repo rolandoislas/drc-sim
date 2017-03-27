@@ -1,3 +1,5 @@
+import os
+import sys
 from cffi import FFI
 from cffi import VerificationError
 
@@ -14,7 +16,7 @@ class H264Decoder:
         self.ffi.cdef('''
             // AVCODEC
             
-            enum PixelFormat { AV_PIX_FMT_YUV420P, AV_PIX_FMT_RGB24, ... };
+            enum AVPixelFormat { AV_PIX_FMT_YUV420P, AV_PIX_FMT_RGB24, ... };
             
             void avcodec_register_all(void);
             
@@ -30,7 +32,7 @@ class H264Decoder:
                             struct AVDictionary **options);
             
             struct AVFrame { uint8_t *data[8]; int linesize[8]; ...; int key_frame; ...; };
-            struct AVFrame *avcodec_alloc_frame(void);
+            struct AVFrame *av_frame_alloc(void);
             
             int avcodec_decode_video2(struct AVCodecContext *avctx, struct AVFrame *picture,
                                     int *got_picture_ptr, struct AVPacket *avpkt);
@@ -39,17 +41,17 @@ class H264Decoder:
             
             void av_free(void *ptr);
             
-            int avpicture_get_size(enum PixelFormat pix_fmt, int width, int height);
+            int av_image_get_buffer_size(enum AVPixelFormat pix_fmt, int width, int height, int align);
             
-            int avpicture_fill(struct AVPicture *picture, uint8_t *ptr,
-                            int pix_fmt, int width, int height);
+            int av_image_fill_arrays(uint8_t *dst_data[4], int dst_linesize[4], const uint8_t *src,
+                            enum AVPixelFormat pix_fmt, int width, int height, int align);
             
             // SWSCALE
             
             #define SWS_BILINEAR ...
             #define SWS_FAST_BILINEAR ...
-            struct SwsContext *sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
-                                            int dstW, int dstH, enum PixelFormat dstFormat,
+            struct SwsContext *sws_getContext(int srcW, int srcH, enum AVPixelFormat srcFormat,
+                                            int dstW, int dstH, enum AVPixelFormat dstFormat,
                                             int flags, struct SwsFilter *srcFilter,
                                             struct SwsFilter *dstFilter, const double *param);
             
@@ -67,6 +69,7 @@ class H264Decoder:
                 ''', libraries=['avcodec', 'swscale'])
         except VerificationError, e:
             Logger.throw(e, "Decoder error. Please open an issue on GitHub with the crash info.")
+            raise e  # Base logger does not raise thrown errors
 
     def __init_avcodec(self):
         self.ns.avcodec_register_all()
@@ -75,18 +78,17 @@ class H264Decoder:
         self.ns.av_init_packet(self.av_packet)
 
         self.codec = self.ns.avcodec_find_decoder(self.ns.AV_CODEC_ID_H264)
-        if not self.codec:
-            raise Exception('avcodec_alloc_context3')
+        assert self.codec
+
         self.context = self.ns.avcodec_alloc_context3(self.codec)
-        if not self.context:
-            raise Exception('avcodec_alloc_context3')
-        if self.ns.avcodec_open2(self.context, self.codec, self.ffi.NULL) < 0:
-            raise Exception('avcodec_open2')
-        self.frame = self.ns.avcodec_alloc_frame()
-        if not self.frame:
-            raise Exception('avcodec_alloc_frame')
+        assert self.context
+
+        assert self.ns.avcodec_open2(self.context, self.codec, self.ffi.NULL) >= 0
+
+        self.frame = self.ns.av_frame_alloc()
+        assert self.frame
         self.got_frame = self.ffi.new('int *')
-        self.out_frame = self.ns.avcodec_alloc_frame()
+        self.out_frame = self.ns.av_frame_alloc()
 
     def __init__(self):
         self.out_buffer, self.sws_context = None, None
@@ -111,15 +113,16 @@ class H264Decoder:
             self.ns.SWS_FAST_BILINEAR,
             self.ffi.NULL,
             self.ffi.NULL, self.ffi.NULL)
-        
-        bytes_req = self.ns.avpicture_get_size(self.ns.AV_PIX_FMT_RGB24, constants.WII_VIDEO_WIDTH,
-                                               constants.WII_VIDEO_HEIGHT)
+
+        bytes_req = self.ns.av_image_get_buffer_size(self.ns.AV_PIX_FMT_RGB24, constants.WII_VIDEO_WIDTH,
+                                                     constants.WII_VIDEO_HEIGHT, 1)
         self.out_buffer = self.ffi.new('uint8_t [%i]' % bytes_req)
-        self.ns.avpicture_fill(
-            self.ffi.cast('struct AVPicture *', self.out_frame),
+        self.ns.av_image_fill_arrays(
+            self.out_frame.data,
+            self.out_frame.linesize,
             self.out_buffer,
             self.ns.AV_PIX_FMT_RGB24,
-            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT)
+            constants.WII_VIDEO_WIDTH, constants.WII_VIDEO_HEIGHT, 1)
 
     def get_image_buffer(self, encoded_nalu):
         in_data = self.ffi.new('uint8_t []', encoded_nalu)
