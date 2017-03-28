@@ -7,6 +7,9 @@
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
 REPO_WPA_SUPPLICANT_DRC="https://github.com/rolandoislas/drc-hostap.git"
 INSTALL_DIR="/opt/drc_sim/"
+PATH_APPLICATION_LAUNCHER="/usr/share/applications/drc-sim-backend.desktop"
+PATH_ICON="/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png"
+PATH_INIT_SCRIPT="/usr/local/bin/drc-sim-backend"
 dependencies=()
 branch_drc_sim=""
 
@@ -163,7 +166,7 @@ install_launch_script() {
     echo "Installing launch script"
     launch_script="${INSTALL_DIR}drc/resources/bin/drc-sim-backend.sh"
     echo "Copying launch script from ${launch_script}"
-    cp ${launch_script} /usr/local/bin/drc-sim-backend &> /dev/null || return 1
+    cp ${launch_script} "${PATH_INIT_SCRIPT}" &> /dev/null || return 1
     echo "Setting launch script executable"
     chmod +x /usr/local/bin/drc-sim-backend &> /dev/null || return 1
 }
@@ -173,24 +176,11 @@ install_desktop_launcher() {
     echo "Installing desktop launcher"
     launcher="${INSTALL_DIR}drc/resources/bin/drc-sim-backend.desktop"
     cp ${launcher} /usr/share/applications/ &> /dev/null || return 1
-    chmod +x /usr/share/applications/drc-sim-backend.desktop &> /dev/null || return 1
+    chmod +x "${PATH_APPLICATION_LAUNCHER}" &> /dev/null || return 1
     echo "Installing icon"
     icon="${INSTALL_DIR}drc/resources/image/icon.png"
-    cp ${icon} /usr/share/icons/hicolor/512x512/apps/drcsimbackend.png &> /dev/null || echo "Failed to install icon"
+    cp ${icon} "${PATH_ICON}" &> /dev/null || echo "Failed to install icon"
     update-icon-caches /usr/share/icons/* &> /dev/null || echo "Failed to update icon cache."
-}
-
-# Checks if the first parameter is help or -h and displays help
-# exits if help is displayed
-check_help() {
-    if [[ "${1}" == "help" ]] || [[ "${1}" == "-h" ]]; then
-        echo "Usage: <install.sh> [options] [branch]"
-        echo "  Options:"
-        echo "    -h, help : help menu"
-        echo "  Arguments:"
-        echo "    branch : branch to use for drc-sim (master or develop) master is used by default"
-        exit 1
-    fi
 }
 
 # Echos the general info
@@ -199,12 +189,43 @@ print_info() {
     echo "  https://github.com/rolandoislas/drc-sim"
 }
 
+# Uninstalls DRC Sim then exists
+uninstall() {
+    echo "Uninstalling DRC Sim Server"
+    echo "Removing install directory"
+    rm -rf ${INSTALL_DIR} &> /dev/null || echo "Failed to remove install directory."
+    echo "Removing application launcher"
+    rm -f ${PATH_APPLICATION_LAUNCHER} &> /dev/null || echo "Failed to remove application launcher"
+    echo "Removing icon"
+    rm -f ${PATH_ICON} &> /dev/null || echo "Failed to remove application icon"
+    echo "Removing init script"
+    rm -f ${PATH_INIT_SCRIPT} &> /dev/null || echo "Failed to remove init script"
+    # TODO uninstall packages
+    printf "\nNOT removing package dependencies\n"
+    printf "${dependencies[*]}\n\n"
+    echo "Uninstalled DRC Sim Server"
+    exit 0
+}
+
 # Parses args
 check_args() {
     branch_drc_sim=${1:-master}
-    if [[ "${branch_drc_sim}" != "develop" ]] && [[ "${branch_drc_sim}" != "master" ]]; then
-        echo "Invalid branch \"${branch_drc_sim}\""
-        check_help "help"
+    # Help
+    if [[ "${1}" == "help" ]] || [[ "${1}" == "-h" ]]; then
+        echo "Usage: <install.sh> [argument]"
+        echo "  Defaults to install."
+        echo "  Arguments:"
+        echo "    -h, help : help menu"
+        echo "    branch : branch to use for drc-sim (master or develop) master is used by default"
+        echo "    uninstall : uninstall DRC Sim"
+        exit 1
+    # Uninstall
+    elif [[ "${1}" == "uninstall" ]]; then
+        uninstall
+    # Install branch
+    elif [[ "${branch_drc_sim}" != "develop" ]] && [[ "${branch_drc_sim}" != "master" ]]; then
+        echo "Invalid branch \"${1}\""
+        check_args "help"
     fi
 }
 
@@ -227,19 +248,22 @@ post_install() {
     exit 0
 }
 
-main() {
-    # TODO create uninstall parameter
-    print_info
-    check_help "$@"
-    check_args "$@"
-    check_root
-    check_os
+# Install drc_sim
+install() {
     install_dependencies
     pass_fail compile_wpa "Compiled wpa_supplicant" "Failed to compile wpa_supplicant"
     pass_fail install_drc_sim "Created virtualenv for drc-sim" "Failed to create virtualenv for drc-sim"
     pass_fail install_launch_script "Launch script installed." "Failed to install launch script"
     pass_fail install_desktop_launcher "Installed application launcher" "Failed to install desktop application launcher"
     post_install
+}
+
+main() {
+    print_info
+    check_root
+    check_os
+    check_args "$@"
+    install
 }
 
 
