@@ -16,7 +16,7 @@ setup(name='drcsim',
                         'resources/image/diamond.gif',
                         'resources/image/heart.gif',
                         'resources/image/spade.gif',
-                        'resources/image/icon.png'
+                        'resources/image/icon.gif'
                   ])],
       scripts=['drc-sim-backend.py']
       )

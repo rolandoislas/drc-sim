@@ -15,7 +15,7 @@ class GuiMain:
         LoggerGui.info("Initializing GUI")
         self.main_window = Tkinter.Tk()
         self.main_window.wm_title("DRC Sim Server")
-        icon = Tkinter.PhotoImage(data=Resource("image/icon.png").resource)
+        icon = Tkinter.PhotoImage(data=Resource("image/icon.gif").resource)
         self.main_window.tk.call("wm", "iconphoto", self.main_window, icon)
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
         # Notebook
