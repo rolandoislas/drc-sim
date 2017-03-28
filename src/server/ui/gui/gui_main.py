@@ -1,6 +1,7 @@
 import Tkinter
 from ttk import Notebook
 
+from src.server.data.resource import Resource
 from src.server.ui.gui.frame.frame_get_key import FrameGetKey
 from src.server.ui.gui.frame.frame_run_server import FrameRunServer
 from src.server.util.logging.logger_gui import LoggerGui
@@ -14,6 +15,8 @@ class GuiMain:
         LoggerGui.info("Initializing GUI")
         self.main_window = Tkinter.Tk()
         self.main_window.wm_title("DRC Sim Server")
+        icon = Tkinter.PhotoImage(data=Resource("image/icon.png").resource)
+        self.main_window.tk.call("wm", "iconphoto", self.main_window, icon)
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
         # Notebook
         self.tab_id = None
