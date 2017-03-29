@@ -1,10 +1,14 @@
-drc-sim
+DRC Sim Server
 ---
 
 Stable: [![Build Status](https://travis-ci.org/rolandoislas/drc-sim.svg?branch=master)](https://travis-ci.org/rolandoislas/drc-sim)
 Dev: [![Build Status](https://travis-ci.org/rolandoislas/drc-sim.svg?branch=develop)](https://travis-ci.org/rolandoislas/drc-sim)
 
 Fork of drc-sim with a server/client implementation. This allows for a broader range of clients.
+
+It needs a [client] for full functionality.
+
+See the [wiki] for more info.
 
 # Installation
 
@@ -21,3 +25,5 @@ Fork of drc-sim with a server/client implementation. This allows for a broader r
 [drc-sim]: https://bitbucket.org/memahaxx/drc-sim
 [drc-sim-keyboard]: https://github.com/justjake/drc-sim-keyboard
 [Installation instructions]: https://github.com/rolandoislas/drc-sim/wiki/Install
+[client]: https://github.com/rolandoislas/drc-sim-client/wiki/Home
+[wiki]: https://github.com/rolandoislas/drc-sim/wiki/Home
