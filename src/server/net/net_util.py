@@ -1,6 +1,6 @@
 import socket
 
-from src.common.net.codec import Codec
+from server.net.codec import Codec
 
 
 class NetUtil:

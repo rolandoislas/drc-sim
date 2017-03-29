@@ -5,19 +5,31 @@ from io import BytesIO
 import construct
 from PIL import Image
 
-from src.common.data import constants
-from src.server.data.config import ConfigServer
+from src.server.data import constants
+from src.server.data.config_server import ConfigServer
 from src.server.data.h264decoder import H264Decoder
+from src.server.data.h264decoder6 import H264Decoder6
 from src.server.net.server.video import ServiceVID
 from src.server.net.sockets import Sockets
 from src.server.net.wii.base import ServiceBase
+from src.server.util.logging.logger_backend import LoggerBackend
+from src.server.util.process_util import ProcessUtil
 
 
 class VideoHandler(ServiceBase):
     def __init__(self):
         super(VideoHandler, self).__init__()
         self.last_sent_time = 0
-        self.decoder = H264Decoder()
+
+        # There is probably a better way to do this, but this method is easy...until something breaks.
+        avcodec_version = int(self.get_installed_package_version("libavcodec-dev").split(":")[0])
+        LoggerBackend.info("AVCodec version %d" % avcodec_version)
+        if avcodec_version <= 6:
+            LoggerBackend.info("Using old AVCodec definitions.")
+            self.decoder = H264Decoder6()
+        else:
+            LoggerBackend.info("Using new AVCodec definitions.")
+            self.decoder = H264Decoder()
         self.header = construct.BitStruct('VSTRMHeader',
                                           construct.Nibble('magic'),
                                           construct.BitField('packet_type', 2),
@@ -36,6 +48,11 @@ class VideoHandler(ServiceBase):
 
     def close(self):
         self.decoder.close()
+
+    @staticmethod
+    def get_installed_package_version(package_name):
+        output = ProcessUtil.get_output(["dpkg", "-s", package_name])
+        return output.split("Version:")[1].split("\n")[0].strip() if "Version:" in output else "0:0"
 
     @staticmethod
     def packet_is_idr(packet):
@@ -76,6 +93,7 @@ class VideoHandler(ServiceBase):
         return nals
 
     def update(self, packet):
+        LoggerBackend.verbose("Received video packet")
         h = self.header.parse(packet)
         is_idr = self.packet_is_idr(packet)
 

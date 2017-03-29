@@ -1,10 +1,10 @@
 import array
 import time
 
-from src.common.data import constants
-from src.common.net.codec import Codec
-from src.server.data.config import ConfigServer
+from src.server.data import constants
+from src.server.data.config_server import ConfigServer
 from src.server.net import sockets
+from src.server.net.codec import Codec
 
 
 class Controller:

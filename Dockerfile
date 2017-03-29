@@ -11,7 +11,7 @@ RUN apt-get update \
     python-pip \
     libffi-dev \
     zlib1g-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     net-tools \
     wireless-tools \
     sysvinit-utils \
@@ -19,7 +19,9 @@ RUN apt-get update \
     libavcodec-dev \
     libswscale-dev \
     rfkill \
-    isc-dhcp-client
+    isc-dhcp-client \
+    ifmetric \
+    python-tk
 
 ADD drc*.py /root/
 ADD setup.py /root/
@@ -29,4 +31,4 @@ ADD MANIFEST.in /root/
 RUN cd /root/ && python setup.py install && rm -rf /root/*
 
 ENV TERM xterm
-ENTRYPOINT ["drc-sim-helper.py"]
+ENTRYPOINT ["drc-sim-backend.py"]

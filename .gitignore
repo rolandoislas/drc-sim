@@ -7,3 +7,4 @@ dist/
 *.egg-info/
 setup.cfg
 temp/
+.drc-sim/

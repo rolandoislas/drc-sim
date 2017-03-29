@@ -1,8 +1,8 @@
 import construct
 
-from src.server.data.args import Args
-from src.common.data import constants
+from src.server.data import constants
 from src.server.net import sockets
+from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class CommandHandler:
@@ -74,25 +74,21 @@ class CommandHandler:
         self.send_response_cmd0(h, r)
 
     def cmd0(self, h, packet):
-        if Args.args.debug:
-            print 'CMD0:%i:%i' % (h.id_primary, h.id_secondary)
+        LoggerBackend.debug('CMD0:%i:%i' % (h.id_primary, h.id_secondary))
         if h.id_primary not in self.cmd0_handlers or h.id_secondary not in self.cmd0_handlers[h.id_primary]:
-            if Args.args.debug:
-                print 'unhandled', packet.encode('hex')
+            LoggerBackend.debug('unhandled: ' + packet.encode('hex'))
             return
         self.cmd0_handlers[h.id_primary][h.id_secondary](h, packet)
 
     # noinspection PyUnusedLocal
     def cmd1(self, h, packet):
-        if Args.args.debug:
-            print 'CMD1', packet[8:].encode('hex')
+        LoggerBackend.extra('CMD1: ' + packet[8:].encode('hex'))
         r = '\x00' * 16
         self.send_response(h, r)
 
     # noinspection PyUnusedLocal
     def cmd2(self, h, packet):
-        if Args.args.debug:
-            print 'TIME base {:04x} seconds {:08x}'.format(h.JDN_base, h.seconds)
+        LoggerBackend.extra('TIME base {:04x} seconds {:08x}'.format(h.JDN_base, h.seconds))
         self.send_response(h)
 
     def ack(self, h):
@@ -131,7 +127,7 @@ class CommandHandler:
         h = self.header.parse(packet)
         # don't track acks from the console for now
         if h.packet_type in (self.PT_REQ, self.PT_RESP):
-            # print 'CMD', packet.encode('hex')
+            LoggerBackend.finer('CMD (%d): ' % h.cmd_id + packet.encode('hex'))
             self.ack(h)
             self.cmd_handlers[h.cmd_id](h, packet)
 

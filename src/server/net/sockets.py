@@ -1,8 +1,8 @@
 import socket
 
-from src.common.net.codec import Codec
-from src.server.data.args import Args
-from src.common.data import constants
+from src.server.data import constants
+from src.server.net.codec import Codec
+from src.server.util.logging.logger_backend import LoggerBackend
 
 
 class Sockets:
@@ -18,7 +18,7 @@ class Sockets:
         self.client_sockets = {}
 
     @staticmethod
-    def service_addend(ip):
+    def service_addend(ip):  # TODO this is unnecessary ip is always 192.168.1.11 or empty string
         """
         Client should listen to ports of 100 higher than client
         constants list client ports which commands are sent to
@@ -32,7 +32,10 @@ class Sockets:
 
     def udp_service(self, ip, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind((ip, port + self.service_addend(ip)))
+        try:
+            sock.bind((ip, port + self.service_addend(ip)))
+        except socket.error, e:
+            LoggerBackend.throw(e, "Could not create socket for ip %s with port %s" % (ip, port))
         return sock
 
     # hack for now, replace with dhcp result
@@ -57,11 +60,38 @@ class Sockets:
         self.SERVER_AUD_S = self.tcp_server(self.SERVER_IP, constants.PORT_SERVER_AUD)
         self.SERVER_CMD_S = self.udp_service(self.SERVER_IP, constants.PORT_SERVER_CMD)
 
-    @staticmethod
-    def remove_client_socket(address):
+    def close(self):
+        LoggerBackend.debug("Closing sockets")
+        if self.WII_MSG_S:
+            # self.WII_MSG_S.shutdown(socket.SHUT_RDWR)
+            self.WII_MSG_S.close()
+        if self.WII_VID_S:
+            # self.WII_VID_S.shutdown(socket.SHUT_RDWR)
+            self.WII_VID_S.close()
+        if self.WII_AUD_S:
+            # self.WII_AUD_S.shutdown(socket.SHUT_RDWR)
+            self.WII_AUD_S.close()
+        if self.WII_CMD_S:
+            # self.WII_CMD_S.shutdown(socket.SHUT_RDWR)
+            self.WII_CMD_S.close()
+        if self.WII_HID_S:
+            # self.WII_HID_S.shutdown(socket.SHUT_RDWR)
+            self.WII_HID_S.close()
+        if self.SERVER_VID_S:
+            # self.SERVER_VID_S.shutdown(socket.SHUT_RDWR)
+            self.SERVER_VID_S.close()
+        if self.SERVER_AUD_S:
+            # self.SERVER_AUD_S.shutdown(socket.SHUT_RDWR)
+            self.SERVER_AUD_S.close()
+        if self.SERVER_CMD_S:
+            # self.SERVER_CMD_S.shutdown(socket.SHUT_RDWR)
+            self.SERVER_CMD_S.close()
+        LoggerBackend.debug("Closed sockets")
+
+    @classmethod
+    def remove_client_socket(cls, address):
         ip = address[0]
-        if Args.args.debug:
-            print "Removing client: " + str(ip)
+        LoggerBackend.debug("Removing client: " + str(ip))
         to_del = []
         for sock_addr in Sockets.client_sockets.keys():
             ip2 = sock_addr[0] if not isinstance(sock_addr[0], socket.socket) else sock_addr[1][0]
@@ -69,20 +99,26 @@ class Sockets:
                 to_del.append(sock_addr)
         for item in to_del:
             del Sockets.client_sockets[item]
-        print "CLIENT SOCKETS: " + str(len(Sockets.client_sockets))
+        cls.log_clients()
 
     @staticmethod
-    def add_client_socket(sock_addr, handler):
+    def log_clients():
+        clients = len(Sockets.client_sockets)
+        LoggerBackend.debug("Client sockets: " + str(clients))
+        if clients % 3 == 0:
+            LoggerBackend.info("Clients: " + str(clients / 3))
+
+    @classmethod
+    def add_client_socket(cls, sock_addr, handler):
         """
         Add client sockets
         :param sock_addr: tuple (sockeu, address) or address, where address is a tuple (ip, port)
         :param handler: The packet handler
         :return: None
         """
-        if Args.args.debug:
-            print "Registered client: " + str(sock_addr)
+        LoggerBackend.debug("Registered client: " + str(sock_addr))
         Sockets.client_sockets[sock_addr] = handler
-        print "CLIENT SOCKETS: " + str(len(Sockets.client_sockets))
+        cls.log_clients()
 
     @staticmethod
     def broadcast_media_packet(packet, socket_type):
@@ -93,9 +129,11 @@ class Sockets:
                 if not encoded_packet:
                     encoded_packet = Codec.encode(packet)
                 try:
-                    # print "packet size: " + socket_type + ": " + str(len(encoded_packet))
+                    LoggerBackend.verbose("Broadcast media packet type: %s size: %d" % (socket_type,
+                                                                                        len(encoded_packet)))
                     sock_addr_pair[0].sendall(encoded_packet)
                 except socket.error:
+                    LoggerBackend.verbose("Broadcast media packet failed")
                     Sockets.remove_client_socket(sock_addr_pair[1])
 
     @staticmethod

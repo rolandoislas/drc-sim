@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=DRC SIM Server
+Comment=Wii U Gamepad Emulator Backend Server
+Exec=gksu /usr/local/bin/drc-sim-backend
+Icon=drcsimbackend
+Terminal=false
+Type=Application
+Categories=Game;Network;
