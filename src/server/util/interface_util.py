@@ -46,11 +46,17 @@ class InterfaceUtil:
 
     @classmethod
     def get_ip(cls, interface):
-        return netifaces.ifaddresses(interface)[netifaces.AF_INET][0]["addr"]
+        addresses = netifaces.ifaddresses(interface)
+        if netifaces.AF_INET in addresses:
+            return addresses[netifaces.AF_INET][0]["addr"]
+        return ""
 
     @classmethod
     def get_mac(cls, interface):
-        return netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]["addr"]
+        addresses = netifaces.ifaddresses(interface)
+        if netifaces.AF_LINK in addresses:
+            return addresses[netifaces.AF_LINK][0]["addr"]
+        return "0"
 
     @classmethod
     def set_metric(cls, interface, metric):

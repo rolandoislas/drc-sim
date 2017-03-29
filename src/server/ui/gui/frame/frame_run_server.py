@@ -106,7 +106,8 @@ class FrameRunServer(FrameTab):
             self.gamepad = Gamepad()
             self.gamepad.add_status_change_listener(self.backend_status_changed)
             self.gamepad.start()
-            self.label_interface_info.config(text="Server IP: " + InterfaceUtil.get_ip(self.normal_interface))
+            self.label_interface_info.config(text="Server IP: " + InterfaceUtil.get_ip(self.normal_interface)
+                                             + "\n" + os.uname()[1])
         elif status in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED):
             self.stop_server()
         elif status == WpaSupplicant.NOT_FOUND:
