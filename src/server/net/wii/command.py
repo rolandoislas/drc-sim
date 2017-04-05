@@ -1,6 +1,9 @@
+import ast
+
 import construct
 
 from src.server.data import constants
+from src.server.data.resource import Resource
 from src.server.net import sockets
 from src.server.util.logging.logger_backend import LoggerBackend
 
@@ -62,29 +65,42 @@ class CommandHandler:
             1: self.cmd1,
             2: self.cmd2
         }
-        self.cmd0_handlers = {
-            5: {6: self.cmd0_5_6},
-        }
+        self.command_json = {}
+        self.set_region()
 
-    # noinspection PyUnusedLocal
-    def cmd0_5_6(self, h, packet):
-        # Returns the 4 byte UIC firmware version followed by the first 768 bytes of the UIC EEPROM.
-        # Send null data TODO get updated firmware
-        r = '\x00' * 772
-        self.send_response_cmd0(h, r)
+    def set_region(self, region=None):
+        # Empty command data
+        if not region or region.upper() == "NONE":
+            self.command_json = ast.literal_eval(Resource("command/na.json").resource)
+            for command in self.command_json.keys():
+                if isinstance(self.command_json[command], str):
+                    self.command_json[command] = "0" * len(self.command_json[command])
+                else:
+                    for id_primary in self.command_json[command].keys():
+                        for id_secondary in self.command_json[command][id_primary].keys():
+                            self.command_json[command][id_primary][id_secondary] = \
+                                "0" * len(self.command_json[command][id_primary][id_secondary])
+        # Region specific command data
+        else:
+            self.command_json = ast.literal_eval(Resource("command/%s.json" % region.lower()).resource)
 
     def cmd0(self, h, packet):
-        LoggerBackend.debug('CMD0:%i:%i' % (h.id_primary, h.id_secondary))
-        if h.id_primary not in self.cmd0_handlers or h.id_secondary not in self.cmd0_handlers[h.id_primary]:
-            LoggerBackend.debug('unhandled: ' + packet.encode('hex'))
+        id_primary = str(h.id_primary)
+        id_secondary = str(h.id_secondary)
+        LoggerBackend.debug('CMD0:%s:%s' % (id_primary, id_secondary))
+        if id_primary not in self.command_json["0"] or id_secondary not in self.command_json["0"][id_primary]:
+            LoggerBackend.debug('unhandled CMD0 %s %s: %s', id_primary, id_secondary, packet.encode('hex'))
             return
-        self.cmd0_handlers[h.id_primary][h.id_secondary](h, packet)
+        response = self.command_json["0"][id_primary][id_secondary]
+        response = bytes(response[40:].decode("hex"))
+        self.send_response_cmd0(h, response)
 
     # noinspection PyUnusedLocal
     def cmd1(self, h, packet):
         LoggerBackend.extra('CMD1: ' + packet[8:].encode('hex'))
-        r = '\x00' * 16
-        self.send_response(h, r)
+        response = self.command_json["1"]
+        response = bytes(response[16:].decode("hex"))
+        self.send_response(h, response)
 
     # noinspection PyUnusedLocal
     def cmd2(self, h, packet):
