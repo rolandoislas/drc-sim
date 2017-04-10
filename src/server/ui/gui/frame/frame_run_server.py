@@ -3,6 +3,8 @@ import tkMessageBox
 from ttk import Label, Button, Combobox
 
 from src.server.control.gamepad import Gamepad
+from src.server.net import socket_handlers, sockets
+from src.server.net.wii.command import CommandHandler
 from src.server.util.wpa_supplicant import WpaSupplicant
 from src.server.data import constants
 from src.server.ui.gui.frame.frame_tab import FrameTab
@@ -30,6 +32,8 @@ class FrameRunServer(FrameTab):
         self.dropdown_wiiu_interface = Combobox(self, state="readonly")
         self.dropdown_normal_interface = Combobox(self, state="readonly")
         self.label_interface_info = Label(self)
+        self.label_region = Label(self, text="Region")
+        self.dropdown_region = Combobox(self, state="readonly")
         # Events
         self.button_start.bind("<Button-1>", self.start_server)
         self.button_stop.bind("<Button-1>", self.stop_server)
@@ -42,9 +46,11 @@ class FrameRunServer(FrameTab):
         self.label_normal_interface.grid(column=0, row=3)
         self.dropdown_wiiu_interface.grid(column=1, row=2, columnspan=2)
         self.dropdown_normal_interface.grid(column=1, row=3, columnspan=2)
-        self.button_start.grid(column=1, row=4)
-        self.button_stop.grid(column=2, row=4)
-        self.label_interface_info.grid(column=0, row=5, columnspan=3)
+        self.label_region.grid(column=0, row=4)
+        self.dropdown_region.grid(column=1, row=4, columnspan=2)
+        self.button_start.grid(column=1, row=5)
+        self.button_stop.grid(column=2, row=5)
+        self.label_interface_info.grid(column=0, row=6, columnspan=3)
         LoggerGui.extra("Initialized FrameRunServer")
 
     def start_server(self, event=None):
@@ -106,6 +112,8 @@ class FrameRunServer(FrameTab):
             self.gamepad = Gamepad()
             self.gamepad.add_status_change_listener(self.backend_status_changed)
             self.gamepad.start()
+            CommandHandler.set_region(socket_handlers.SocketHandlers.wii_handlers[sockets.Sockets.WII_CMD_S],
+                                      self.dropdown_region.get())
             self.label_interface_info.config(text="Server IP: " + InterfaceUtil.get_ip(self.normal_interface)
                                              + "\n" + os.uname()[1])
         elif status in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED):
@@ -143,8 +151,7 @@ class FrameRunServer(FrameTab):
         LoggerGui.debug("FrameRunServer activated")
         self.dropdown_wiiu_interface["values"] = InterfaceUtil.get_wiiu_compatible_interfaces()
         self.dropdown_normal_interface["values"] = InterfaceUtil.get_all_interfaces()
-        self.dropdown_wiiu_interface.set("")
-        self.dropdown_normal_interface.set("")
+        self.dropdown_region["values"] = ["NONE", "NA"]
         self.label_wpa_status["text"] = WpaSupplicant.DISCONNECTED
         self.label_backend_status["text"] = Gamepad.STOPPED
         self.button_start.config(state="normal")

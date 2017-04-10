@@ -1,5 +1,8 @@
 import os
 
+# Info
+VERSION = "1.4"
+
 # Port
 PORT_WII_MSG = 50010
 PORT_WII_VID = 50020
