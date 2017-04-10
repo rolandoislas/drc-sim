@@ -61,7 +61,7 @@ def main():
     ConfigServer.load()
     ConfigServer.save()
     init_loggers()
-    Logger.info("Initializing drc-sim-backend")
+    Logger.info("Initializing drc-sim-backend version %s", constants.VERSION)
     Logger.info("Using \"%s\" as home folder.", constants.PATH_ROOT)
     log_level()
     OsUtil.log_info(Logger)
