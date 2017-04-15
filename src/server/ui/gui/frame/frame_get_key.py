@@ -1,14 +1,11 @@
 import os
-import time
-import tkMessageBox
-from Tkinter import PhotoImage, Button, END
-from threading import Thread
-from ttk import Entry, Progressbar, Combobox
+from tkinter import PhotoImage, Button, END, messagebox
+from tkinter.ttk import Entry, Progressbar, Combobox
 
-from src.server.util.interface_util import InterfaceUtil
 from src.server.data import constants
 from src.server.data.resource import Resource
 from src.server.ui.gui.frame.frame_tab import FrameTab
+from src.server.util.interface_util import InterfaceUtil
 from src.server.util.logging.logger_gui import LoggerGui
 from src.server.util.wpa_supplicant import WpaSupplicant
 
@@ -64,12 +61,13 @@ class FrameGetKey(FrameTab):
         self.progress_bar.grid(column=0, row=3, columnspan=5)
         self.dropdown_wii_u.grid(column=0, row=2, columnspan=5)
 
+    # noinspection PyUnusedLocal
     def button_delete_clicked(self, event):
         self.set_code_text(self.entry_pair_code.get()[:len(self.entry_pair_code.get()) - 1])
 
     def button_clicked(self, event):
         if self.getting_psk:
-            tkMessageBox.showerror("Running", "A pairing attempt is already im progress.")
+            messagebox.showerror("Running", "A pairing attempt is already im progress.")
             return
         number = str(event.widget.number)
         LoggerGui.debug("A suit button was clicked")  # Don't log numbers as the code can be derived from that
@@ -78,24 +76,24 @@ class FrameGetKey(FrameTab):
         self.set_code_text(code)
         wii_u_interface = self.dropdown_wii_u.get()
         if not wii_u_interface:
-            tkMessageBox.showerror("No Interface", "An interface must be selected.")
+            messagebox.showerror("No Interface", "An interface must be selected.")
             self.activate()
             return
         try:
             InterfaceUtil.get_mac(wii_u_interface)
         except ValueError:
-            tkMessageBox.showerror("Interface Error", "The selected Interface is no longer available.")
+            messagebox.showerror("Interface Error", "The selected Interface is no longer available.")
             self.activate()
             return
         if InterfaceUtil.is_managed_by_network_manager(wii_u_interface):
-            set_unmanaged = tkMessageBox.askokcancel(
+            set_unmanaged = messagebox.askokcancel(
                 "Managed Interface", "This interface is managed by Network Manager. To use it with DRC Sim it needs "
                                      "to be set to unmanaged. Network Manager will not be able to control the interface"
                                      " after this.\nSet %s to unmanaged?" % wii_u_interface)
             if set_unmanaged:
                 InterfaceUtil.set_unmanaged_by_network_manager(wii_u_interface)
             else:
-                tkMessageBox.showerror("Managed Interface", "Selected Wii U interface is managed by Network Manager.")
+                messagebox.showerror("Managed Interface", "Selected Wii U interface is managed by Network Manager.")
                 self.activate()
                 return
         if len(code) == 4:
@@ -120,19 +118,19 @@ class FrameGetKey(FrameTab):
         if status == WpaSupplicant.NOT_FOUND:
             self.deactivate()
             self.activate()
-            tkMessageBox.showerror("Scan", "No Wii U found.")
+            messagebox.showerror("Scan", "No Wii U found.")
         elif status == WpaSupplicant.TERMINATED:
             self.deactivate()
             self.activate()
-            tkMessageBox.showerror("Auth Fail", "Could not authenticate. Check the entered PIN.")
+            messagebox.showerror("Auth Fail", "Could not authenticate. Check the entered PIN.")
         elif status == WpaSupplicant.FAILED_START:
             self.deactivate()
             self.activate()
-            tkMessageBox.showerror("Error", "An unexpected error occurred.")
+            messagebox.showerror("Error", "An unexpected error occurred.")
         elif status == WpaSupplicant.DISCONNECTED:
             self.deactivate()
             self.activate()
-            tkMessageBox.showerror("Auth Saved", "Successfully paired with Wii U.")
+            messagebox.showerror("Auth Saved", "Successfully paired with Wii U.")
 
     def activate(self):
         LoggerGui.debug("FrameTab activate called")

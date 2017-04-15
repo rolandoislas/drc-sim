@@ -119,7 +119,7 @@ class WpaSupplicant:
             LoggerWpa.debug("Stopping wpa status check")
             try:
                 self.status_check_thread.join()
-            except RuntimeError, e:
+            except RuntimeError as e:
                 LoggerWpa.exception(e)
         if self.psk_thread_cli and self.psk_thread_cli.isalive():
             LoggerWpa.debug("Stopping psk pexpect spawn")
@@ -194,9 +194,9 @@ class WpaSupplicant:
                         self.psk_thread_cli.expect(self.mac_addr_regex.pattern, timeout=1)
                     except pexpect.TIMEOUT:
                         break
-                scan_results = self.psk_thread_cli.before
+                scan_results = self.psk_thread_cli.before.decode()
                 LoggerWpa.finer("CLI expect - scan results: %s", scan_results)
-                for line in scan_results.split("\n"):
+                for line in scan_results.splitlines():
                     if self.wiiu_ap_regex.match(line):
                         wii_u_bssids.append(line.split()[0])
                 if len(wii_u_bssids) == 0:
@@ -228,7 +228,7 @@ class WpaSupplicant:
                     self.psk_thread_cli.sendline("reconnect")
                     self.psk_thread_cli.expect("OK")
         # Timed out
-        except pexpect.TIMEOUT, e:
+        except pexpect.TIMEOUT as e:
             LoggerWpa.debug("PSK get attempt ended with an error.")
             LoggerWpa.exception(e)
             for callback in self.status_changed_listeners:

@@ -48,14 +48,12 @@ class Gamepad:
         data = sock.recv(2048)
         try:
             socket_handlers.SocketHandlers.wii_handlers[sock].update(data)
-        except socket.error, e:
+        except socket.error as e:
             LoggerBackend.warn(str(e) + str(e.errno))
 
     def handle_sockets(self):
         # Group all sockets
-        rlist, wlist, xlist = select.select(socket_handlers.SocketHandlers.wii_handlers.keys() +
-                                            socket_handlers.SocketHandlers.server_media_handlers.keys() +
-                                            socket_handlers.SocketHandlers.server_command_handlers.keys(),
+        rlist, wlist, xlist = select.select(socket_handlers.SocketHandlers.get_handler_keys(),
                                             (), (), 0.001)
         if rlist:
             # Notify once first packet is received
@@ -81,7 +79,7 @@ class Gamepad:
                 self.check_last_packet_time()
                 self.handle_sockets()
                 Controller.update()
-            except Exception, e:
+            except Exception as e:
                 LoggerBackend.throw(e)
 
     def close(self):
@@ -92,11 +90,11 @@ class Gamepad:
         self.running = False
         try:
             self.backend_thread.join()
-        except RuntimeError, e:
+        except RuntimeError as e:
             LoggerBackend.exception(e)
         LoggerBackend.debug("Closing handlers")
         if socket_handlers.SocketHandlers.wii_handlers:
-            for s in socket_handlers.SocketHandlers.wii_handlers.itervalues():
+            for s in socket_handlers.SocketHandlers.wii_handlers.values():
                 s.close()
         LoggerBackend.debug("Closing sockets")
         sockets.Sockets.close()

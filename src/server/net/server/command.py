@@ -1,3 +1,5 @@
+import codecs
+
 from src.server.data import constants
 from src.server.control.util.controller import Controller
 from src.server.net import sockets
@@ -12,6 +14,7 @@ class ServiceCMD:
         pass
 
     def update(self, address, command, data):
+        data = data.decode()  # to string
         LoggerBackend.finer("Received command packet of type %s from client %s: %s" % (command, address, data))
         if command == constants.COMMAND_REGISTER:
             self.register_client(address)

@@ -2,13 +2,13 @@ import array
 import time
 from io import BytesIO
 
-import construct
 from PIL import Image
 
 from src.server.data import constants
 from src.server.data.config_server import ConfigServer
 from src.server.data.h264decoder import H264Decoder
 from src.server.data.h264decoder6 import H264Decoder6
+from src.server.data.struct import video
 from src.server.net.server.video import ServiceVID
 from src.server.net.sockets import Sockets
 from src.server.net.wii.base import ServiceBase
@@ -30,18 +30,6 @@ class VideoHandler(ServiceBase):
         else:
             LoggerBackend.info("Using new AVCodec definitions.")
             self.decoder = H264Decoder()
-        self.header = construct.BitStruct('VSTRMHeader',
-                                          construct.Nibble('magic'),
-                                          construct.BitField('packet_type', 2),
-                                          construct.BitField('seq_id', 10),
-                                          construct.Flag('init'),
-                                          construct.Flag('frame_begin'),
-                                          construct.Flag('chunk_end'),
-                                          construct.Flag('frame_end'),
-                                          construct.Flag('has_timestamp'),
-                                          construct.BitField('payload_size', 11),
-                                          construct.BitField('timestamp', 32)
-                                          )
         self.frame = array.array('B')
         self.is_streaming = False
         self.frame_decode_num = 0
@@ -56,7 +44,7 @@ class VideoHandler(ServiceBase):
 
     @staticmethod
     def packet_is_idr(packet):
-        return packet[8:16].find('\x80') != -1
+        return "x80" in str(packet[8:16])
 
     def h264_nal_encapsulate(self, is_idr, vstrm):
         slice_header = 0x25b804ff if is_idr else (0x21e003ff | ((self.frame_decode_num & 0xff) << 13))
@@ -85,7 +73,7 @@ class VideoHandler(ServiceBase):
 
         # add escape codes
         nals.extend(vstrm[:2])
-        for i in xrange(2, len(vstrm)):
+        for i in range(2, len(vstrm)):
             if vstrm[i] <= 3 and nals[-2] == 0 and nals[-1] == 0:
                 nals.extend([3])
             nals.extend([vstrm[i]])
@@ -94,7 +82,7 @@ class VideoHandler(ServiceBase):
 
     def update(self, packet):
         LoggerBackend.verbose("Received video packet")
-        h = self.header.parse(packet)
+        h = video.header.parse(packet)
         is_idr = self.packet_is_idr(packet)
 
         seq_ok = self.update_seq_id(h.seq_id)
@@ -109,7 +97,7 @@ class VideoHandler(ServiceBase):
                     self.is_streaming = True
                 else:
                     # request a new IDR frame
-                    Sockets.WII_MSG_S.sendto('\1\0\0\0', ('192.168.1.10', constants.PORT_WII_MSG))
+                    Sockets.WII_MSG_S.sendto(b'\x01\x00\x00\x00', ('192.168.1.10', constants.PORT_WII_MSG))
                     return
 
         self.frame.fromstring(packet[16:])
@@ -124,7 +112,7 @@ class VideoHandler(ServiceBase):
             # Reduce quality at the expense of CPU
             if ConfigServer.quality < 100:
                 image = Image.frombuffer("RGB", (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT),
-                                         str(image_buffer), "raw", "RGB", 0, 1)
+                                         image_buffer, "raw", "RGB", 0, 1)
                 ib = BytesIO()
                 image.save(ib, "JPEG", quality=ConfigServer.quality)
                 ServiceVID.broadcast(ib.getvalue())

@@ -50,7 +50,7 @@ class Controller:
         # 3: r stick l/r
         # 4: r stick u/d
         # 5: r trigger
-        for axis in xrange(4):
+        for axis in range(4):
             orig = cls.get_joystick_input(axis)
             scaled = 0x800
             if abs(orig) > 0.2:
@@ -78,7 +78,7 @@ class Controller:
             y = cls.scale_stick(point[1], 0, screen[1], 3800, 200)
             z1 = 2000
 
-            for i in xrange(10):
+            for i in range(10):
                 report[18 + i * 2 + 0] = 0x8000 | x
                 report[18 + i * 2 + 1] = 0x8000 | y
 
@@ -154,7 +154,7 @@ class Controller:
     @classmethod
     def send_hid_update(cls):
 
-        report = array.array('H', '\0\0' * 0x40)
+        report = array.array('H', [0] * 128)
 
         # 16bit LE @ 0 seq_id
         # seems to be ignored

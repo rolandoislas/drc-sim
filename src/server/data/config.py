@@ -1,4 +1,4 @@
-import ConfigParser
+import configparser
 import os
 
 
@@ -6,7 +6,7 @@ class Config:
 
     def __init__(self):
         self.path = ""
-        self.config = ConfigParser.SafeConfigParser(allow_no_value=True)
+        self.config = configparser.ConfigParser(allow_no_value=True)
 
     def load(self, path):
         self.path = os.path.expanduser(path)
@@ -17,7 +17,7 @@ class Config:
             value = self.config.getboolean(section, option)
             self.add_value(section, option, value, comment, default=default)
             return value
-        except (ValueError, ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+        except (ValueError, configparser.NoSectionError, configparser.NoOptionError):
             self.add_value(section, option, default, comment, default=default)
             return default
 
@@ -45,7 +45,7 @@ class Config:
             value = self.config.getfloat(section, option)
             self.add_value(section, option, value, comment, min_val, max_val, default)
             return self.get_min_max(value, min_val, max_val)
-        except (ValueError, ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+        except (ValueError, configparser.NoSectionError, configparser.NoOptionError):
             self.add_value(section, option, default, comment, min_val, max_val, default)
             return default
 
@@ -54,7 +54,7 @@ class Config:
             value = self.config.getint(section, option)
             self.add_value(section, option, value, comment, min_val, max_val, default)
             return self.get_min_max(value, min_val, max_val)
-        except (ValueError, ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+        except (ValueError, configparser.NoSectionError, configparser.NoOptionError):
             self.add_value(section, option, default, comment, min_val, max_val, default)
             return default
 
@@ -70,7 +70,7 @@ class Config:
     def save(self):
         path_parts = os.path.split(self.path)
         path = ""
-        for index in xrange(0, len(path_parts)):
+        for index in range(0, len(path_parts)):
             if index < len(path_parts) - 1:
                 path += os.path.sep + path_parts[index]
         if os.name == "nt":
@@ -78,7 +78,6 @@ class Config:
         path = os.path.abspath(path)
         if not os.path.exists(path):
             os.makedirs(path)
-        file_out = file(self.path, "w")
+        file_out = open(self.path, "w")
         self.config.write(file_out)
         file_out.close()
-

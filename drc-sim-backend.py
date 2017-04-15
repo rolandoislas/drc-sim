@@ -39,7 +39,7 @@ def start():
     except KeyboardInterrupt:
         if ui:
             ui.stop()
-    except Exception, e:
+    except Exception as e:
         if ui:
             ui.stop()
         Logger.throw(e)

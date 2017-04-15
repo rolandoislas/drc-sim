@@ -34,7 +34,7 @@ class Sockets:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             sock.bind((ip, port + self.service_addend(ip)))
-        except socket.error, e:
+        except socket.error as e:
             LoggerBackend.throw(e, "Could not create socket for ip %s with port %s" % (ip, port))
         return sock
 
@@ -104,9 +104,9 @@ class Sockets:
     @staticmethod
     def log_clients():
         clients = len(Sockets.client_sockets)
-        LoggerBackend.debug("Client sockets: " + str(clients))
+        LoggerBackend.debug("Client sockets: %d", clients)
         if clients % 3 == 0:
-            LoggerBackend.info("Clients: " + str(clients / 3))
+            LoggerBackend.info("Clients: %d", int(clients / 3))
 
     @classmethod
     def add_client_socket(cls, sock_addr, handler):
@@ -123,7 +123,7 @@ class Sockets:
     @staticmethod
     def broadcast_media_packet(packet, socket_type):
         encoded_packet = None
-        for sock_addr_pair in Sockets.client_sockets.keys():
+        for sock_addr_pair in list(Sockets.client_sockets.keys()):
             if sock_addr_pair in Sockets.client_sockets.keys() and \
                             Sockets.client_sockets[sock_addr_pair].__name__ == socket_type:
                 if not encoded_packet:

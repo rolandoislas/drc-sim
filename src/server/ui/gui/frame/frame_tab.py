@@ -1,4 +1,4 @@
-from ttk import Frame
+from tkinter.ttk import Frame
 
 
 class FrameTab(Frame):

@@ -19,9 +19,9 @@ check_os() {
     if command -v apt-get &> /dev/null; then
         echo "Command apt-get found."
         # Backend dependencies
-        dependencies=("python2.7" "python2.7-dev" "python-pip" "libffi-dev" "zlib1g-dev" "libjpeg-dev"
+        dependencies=("python3" "python3-dev" "python3-pip" "libffi-dev" "zlib1g-dev" "libjpeg-dev"
         "net-tools" "wireless-tools" "sysvinit-utils" "psmisc" "libavcodec-dev" "libswscale-dev" "rfkill"
-        "isc-dhcp-client" "ifmetric" "python-tk" "gksu")
+        "isc-dhcp-client" "ifmetric" "python3-tk" "gksu")
         # Wpa supplicant compile dependencies
         dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make")
     else

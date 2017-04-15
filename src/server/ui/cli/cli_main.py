@@ -49,7 +49,8 @@ class CliMain:
         while self.gamepad.running:
             time.sleep(1)
 
-    def check_interfaces(self, normal_interface, wii_u_interface):
+    @staticmethod
+    def check_interfaces(normal_interface, wii_u_interface):
         if normal_interface == wii_u_interface:
             LoggerCli.throw(Exception("The Wii U and normal interfaces cannot be the same."))
         try:
@@ -89,13 +90,14 @@ class CliMain:
         while self.getting_key:
             time.sleep(1)
 
-    def prompt_unmanaged(self, interface):
+    @staticmethod
+    def prompt_unmanaged(interface):
         if not InterfaceUtil.is_managed_by_network_manager(interface):
             return
         LoggerCli.info("The interface \"%s\" is managed by Network Manager. It must be set to "
                        "unmanaged to function with DRC Sim. Network manager will not be able to "
                        "use this interface after it is set to unmanaged.", interface)
-        response = raw_input("Set %s as unmanaged? (y/n)" % interface)
+        response = input("Set %s as unmanaged? (y/n)" % interface)
         LoggerCli.debug(response)
         if response in ("y", "yes", "Y", "Yes", "YES"):
             InterfaceUtil.set_unmanaged_by_network_manager(interface)

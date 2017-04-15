@@ -1,5 +1,5 @@
-import Tkinter
-from ttk import Notebook
+import tkinter
+from tkinter.ttk import Notebook
 
 from src.server.data.resource import Resource
 from src.server.ui.gui.frame.frame_get_key import FrameGetKey
@@ -9,13 +9,13 @@ from src.server.util.logging.logger_gui import LoggerGui
 
 class GuiMain:
     def __init__(self):
-        Tkinter.Tk.report_callback_exception = self.throw
+        tkinter.Tk.report_callback_exception = self.throw
         # Main window
         self.destroyed = False
         LoggerGui.info("Initializing GUI")
-        self.main_window = Tkinter.Tk()
+        self.main_window = tkinter.Tk()
         self.main_window.wm_title("DRC Sim Server")
-        icon = Tkinter.PhotoImage(data=Resource("image/icon.gif").resource)
+        icon = tkinter.PhotoImage(data=Resource("image/icon.gif").resource)
         self.main_window.tk.call("wm", "iconphoto", self.main_window, icon)
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
         # Notebook
@@ -57,7 +57,7 @@ class GuiMain:
             self.notebook.children[self.tab_id].deactivate()
         try:
             self.main_window.destroy()
-        except Exception, e:
+        except Exception as e:
             LoggerGui.exception(e)
 
     def on_tab_changed(self, event):

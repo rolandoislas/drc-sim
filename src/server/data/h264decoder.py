@@ -1,10 +1,9 @@
-import os
-import sys
 from cffi import FFI
 from cffi import VerificationError
 
 from src.server.data import constants
 from src.server.util.logging.logger import Logger
+
 
 # TODO static alloc in_data and make interface for reading/writing directly to it
 #   remove array.array usage of calling code
@@ -67,7 +66,7 @@ class H264Decoder:
                 #include <libavcodec/avcodec.h>
                 #include <libswscale/swscale.h>
                 ''', libraries=['avcodec', 'swscale'])
-        except VerificationError, e:
+        except VerificationError as e:
             Logger.throw(e, "Decoder error. Please open an issue on GitHub with the crash info.")
             raise e  # Base logger does not raise thrown errors
 
