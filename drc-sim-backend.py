@@ -12,6 +12,10 @@ from src.server.util.os_util import OsUtil
 
 
 def init_loggers():
+    """
+    Initialize loggers with a specified log level if they have the argument.
+    :return: None
+    """
     loggers = (Logger, LoggerBackend, LoggerGui, LoggerCli, LoggerWpa)
     for logger in loggers:
         if Args.args.debug:
@@ -27,6 +31,10 @@ def init_loggers():
 
 
 def start():
+    """
+    Main loop. It can be GUI or CLI based on args. Dies if an error makes it way here or main loop stops.
+    :return: None
+    """
     ui = None
     try:
         if Args.args.cli:
@@ -47,6 +55,10 @@ def start():
 
 
 def log_level():
+    """
+    Log at every level to display the levels that are enabled.
+    :return: None
+    """
     # Logger info
     Logger.debug("Debug logging enabled")
     Logger.extra("Extra debug logging enabled")
@@ -57,6 +69,10 @@ def log_level():
 
 
 def main():
+    """
+    Main entry point. Parses arguments, loads configuration files, initialized loggers and starts the main loop.
+    :return: None
+    """
     Args.parse_args()
     ConfigServer.load()
     ConfigServer.save()

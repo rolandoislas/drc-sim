@@ -1,7 +1,5 @@
-import codecs
-
-from src.server.data import constants
 from src.server.control.util.controller import Controller
+from src.server.data import constants
 from src.server.net import sockets
 from src.server.net.codec import Codec
 from src.server.util.logging.logger_backend import LoggerBackend
@@ -21,20 +19,22 @@ class ServiceCMD:
         elif command == constants.COMMAND_INPUT_BUTTON:
             Controller.set_button_input(data)
         elif command == constants.COMMAND_INPUT_L3R3:
-            Controller.set_l3r3_input(data)
+            Controller.set_extra_button_input(data)
         elif command == constants.COMMAND_INPUT_TOUCH:
             Controller.set_touch_input(data)
         elif command == constants.COMMAND_INPUT_JOYSTICK:
             Controller.set_joystick_input(data)
         elif command == constants.COMMAND_PING:
             sockets.Sockets.SERVER_CMD_S.sendto(Codec.encode_command(constants.COMMAND_PONG), address)
+        elif command == constants.COMMAND_INPUT_MIC_BLOW:
+            Controller.set_send_audio(data)
 
     @staticmethod
     def register_client(address):
         sockets.Sockets.add_client_socket(address, ServiceCMD)
 
     @classmethod
-    def broadcast(cls, command, data=""):
+    def broadcast(cls, command, data=b""):
         sockets.Sockets.broadcast_command_packet(command, data, ServiceCMD.__name__)
 
 

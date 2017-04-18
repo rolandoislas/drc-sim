@@ -9,6 +9,9 @@ from src.server.util.logging.logger_gui import LoggerGui
 
 class GuiMain:
     def __init__(self):
+        """
+        Main Gui Entrance
+        """
         tkinter.Tk.report_callback_exception = self.throw
         # Main window
         self.destroyed = False
@@ -32,23 +35,44 @@ class GuiMain:
 
     @staticmethod
     def throw(*args):
+        """
+        Throw exceptions from Tkinter
+        :param args: arguments
+        :return: None
+        """
         for arg in args:
             if isinstance(arg, Exception):
                 LoggerGui.throw(arg)
 
     def after(self):
+        """
+        Empty loop to catch KeyboardInterrupt
+        :return: None
+        """
         self.main_window.after(1000, self.after)
 
     def start(self):
+        """
+        Start the main window loop
+        :return: 
+        """
         LoggerGui.info("Opening GUI")
         self.after()
         self.main_window.mainloop()
         LoggerGui.info("GUI Closed")
 
     def stop(self):
+        """
+        Convenience function to call on_closing()
+        :return: None
+        """
         self.on_closing()
 
     def on_closing(self):
+        """
+        Close the main window and current tab
+        :return: None
+        """
         if self.destroyed:
             return
         self.destroyed = True
@@ -60,7 +84,13 @@ class GuiMain:
         except Exception as e:
             LoggerGui.exception(e)
 
+    # noinspection PyUnusedLocal
     def on_tab_changed(self, event):
+        """
+        Close the previous tab and initialize a new one
+        :param event: tab event
+        :return: None
+        """
         tab_id = self.notebook.select()
         tab_index = self.notebook.index(tab_id)
         tab_name = self.notebook.tab(tab_index, "text")

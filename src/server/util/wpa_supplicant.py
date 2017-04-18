@@ -9,9 +9,10 @@ from src.server.data import constants
 from src.server.data.config_server import ConfigServer
 from src.server.util.logging.logger_wpa import LoggerWpa
 from src.server.util.process_util import ProcessUtil
+from src.server.util.status_sending_thread import StatusSendingThread
 
 
-class WpaSupplicant:
+class WpaSupplicant(StatusSendingThread):
     UNKNOWN = "UNKNOWN"
     CONNECTING = "CONNECTING"
     CONNECTED = "CONNECTED"
@@ -22,6 +23,10 @@ class WpaSupplicant:
     FAILED_START = "FAILED_START"
 
     def __init__(self):
+        """
+        Helper for interacting with wpa_supplicant_drc and wpa_cli_drc.
+        """
+        super().__init__()
         self.time_scan = 0
         self.time_start = 0
         self.mac_addr_regex = re.compile('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})')
@@ -37,6 +42,18 @@ class WpaSupplicant:
         self.psk_thread_cli = None
 
     def connect(self, conf_path, interface, status_check=True):
+        """
+        Starts a thread that connects to the Wii U.
+        Status:
+          FAILED_START: wpa_supplicant_drc did not initialize
+          SCANNING: wpa_supplicant_drc is scanning
+          CONNECTED: wpa_supplicant_drc is connected to an AP
+          CONNECTING: wpa_supplicant_drc is authenticating
+          TERMINATED: wpa_supplicant_drc was found by the T-1000 Cyberdyne Systems Model 101
+          NOT_FOUND: wpa_supplicant_drc could not find a Wii U AP
+          UNKNOWN: wpa_supplicant_drc is in a state that is unhandled - it will be logged
+        :return: None
+        """
         LoggerWpa.debug("Connect called")
         self.running = True
         self.unblock_wlan()
@@ -52,10 +69,15 @@ class WpaSupplicant:
         LoggerWpa.debug("Started wpa supplicant")
         if status_check:
             LoggerWpa.debug("Starting status check thread")
-            self.status_check_thread = Thread(target=self.check_status)
+            self.status_check_thread = Thread(target=self.check_status, name="WPA Status Check Thread")
             self.status_check_thread.start()
 
     def check_status(self):
+        """
+        Thread that checks WPA status every second
+        Updates 
+        :return: None
+        """
         while self.running:
             wpa_status = self.wpa_cli("status")
             scan_results = self.wpa_cli("scan_results")
@@ -90,27 +112,41 @@ class WpaSupplicant:
             else:
                 LoggerWpa.extra("WPA status: %s", wpa_status)
                 status = self.UNKNOWN
-            if status != self.status:
-                self.status = status
-                for callback in self.status_changed_listeners:
-                    callback(self.status)
+            self.set_status(status)
             time.sleep(1)
 
     @staticmethod
     def kill_wpa():
+        """
+        Makes a system call to kill wpa_supplicant_drc
+        :return: None
+        """
         ProcessUtil.call(["killall", "wpa_supplicant_drc"])
 
     @staticmethod
     def unblock_wlan():
+        """
+        Make a system call to unblock wlan
+        :return: None
+        """
         ProcessUtil.call(["rfkill", "unblock", "wlan"])
 
     @staticmethod
     def wpa_cli(command):
+        """
+        Makes a system call to wpa_cli_drc
+        :param command: command to pass to wpa_cli_drc
+        :return: command output
+        """
         if isinstance(command, str):
             command = [command]
         return ProcessUtil.get_output(["wpa_cli_drc", "-p", "/var/run/wpa_supplicant_drc"] + command, silent=True)
 
     def stop(self):
+        """
+        Stops any background thread that is running
+        :return: None
+        """
         if not self.running:
             LoggerWpa.debug("Ignored stop request: already stopped")
             return
@@ -130,50 +166,53 @@ class WpaSupplicant:
             self.wpa_supplicant_process.terminate()
             self.kill_wpa()
         # reset
-        self.status_changed_listeners = []
+        self.clear_status_change_listeners()
         self.time_start = 0
         self.time_scan = 0
         LoggerWpa.debug("Wpa stopped")
 
-    def add_status_change_listener(self, callback):
-        """
-        Calls passed method when status changed.
-        If listening to a "connect" call:
-          FAILED_START: wpa_supplicant_drc did not initialize
-          SCANNING: wpa_supplicant_drc is scanning
-          CONNECTED: wpa_supplicant_drc is connected to an AP
-          CONNECTING: wpa_supplicant_drc is authenticating
-          TERMINATED: wpa_supplicant_drc was found by the T-1000 Cyberdyne Systems Model 101
-          NOT_FOUND: wpa_supplicant_drc could not find a Wii U AP
-          UNKNOWN: wpa_supplicant_drc is in a state that is unhandled - it will be logged
-        If listening to a "get_psk" call:
-          FAILED_START: there was an error attempting to parse CLI output - exception is logged
-          NOT_FOUND: wpa_supplicant_drc did not find any Wii U APs
-          TERMINATED: wpa_supplicant_drc could not authenticate with any SSIDs
-          DISCONNECTED: auth details were saved
-        :param callback: method to call on status change
-        :return: None
-        """
-        self.status_changed_listeners.append(callback)
-
     def scan_contains_wii_u(self, scan_results):
-        for line in scan_results.split("\n"):
+        """
+        Check if string contains Wii U SSID
+        :param scan_results: string
+        :return: boolean
+        """
+        for line in scan_results.splitlines():
             if self.wiiu_ap_regex.match(line):
                 return True
         return False
 
     def scan_is_empty(self, scan_results):
+        """
+        Check if the scan has no MAC addresses
+        :param scan_results: string
+        :return: boolean
+        """
         for line in scan_results.split("\n"):
             if self.mac_addr_regex.match(line):
                 return False
         return True
 
     def get_psk(self, conf_path, interface, code):
+        """
+        Starts a thread to connect and attempt to obtain a Wii U's PSK
+        Status:
+          FAILED_START: there was an error attempting to parse CLI output - exception is logged
+          NOT_FOUND: wpa_supplicant_drc did not find any Wii U APs
+          TERMINATED: wpa_supplicant_drc could not authenticate with any SSIDs
+          DISCONNECTED: auth details were saved
+        :return: None
+        """
         self.connect(conf_path, interface, status_check=False)
         self.psk_thread = Thread(target=self.get_psk_thread, kwargs={"code": code}, name="PSK Thread")
         self.psk_thread.start()
 
     def get_psk_thread(self, code):
+        """
+        Thread that attempts to authenticate with a Wii U. Updates status
+        :param code: WPS PIN
+        :return: None
+        """
         try:
             LoggerWpa.debug("CLI expect starting")
             self.psk_thread_cli = pexpect.spawn("wpa_cli_drc -p /var/run/wpa_supplicant_drc")
@@ -240,6 +279,12 @@ class WpaSupplicant:
 
     @staticmethod
     def save_connect_conf(bssid):
+        """
+        Modify the temp get_psk configuration to be a connect configurraton and save it to
+         ~/.drc-sim/connect_to_wii_u.conf.
+        :param bssid: Wii U BSSID
+        :return: None
+        """
         LoggerWpa.debug("Saving connection config")
         # add additional connect information to config
         conf = open(constants.PATH_CONF_CONNECT_TMP, "r")

@@ -7,9 +7,9 @@ accelerometer_data = construct.Struct(
 )
 
 gyroscope_data = construct.BitStruct(
-    "gyro_roll" / construct.Int24sl,
-    "gyro_yaw" / construct.Int24sl,
-    "gyro_pitch" / construct.Int24sl
+    "gyro_roll" / construct.BitsInteger(24),
+    "gyro_yaw" / construct.BitsInteger(24),
+    "gyro_pitch" / construct.BitsInteger(24)
 )
 
 magnet_data = construct.Struct(
@@ -22,10 +22,10 @@ touchscreen_coords_data = construct.BitStruct(
     "touch_value" / construct.BitsInteger(12)
 )
 touchscreen_points_data = construct.Struct(
-    construct.Array(2, touchscreen_coords_data)
+    "coords" / construct.Array(2, touchscreen_coords_data)
 )
 touchscreen_data = construct.Struct(
-    construct.Array(10, touchscreen_points_data)
+    "points" / construct.Array(10, touchscreen_points_data)
 )
 
 input_data = construct.Struct(

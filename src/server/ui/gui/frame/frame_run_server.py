@@ -14,6 +14,11 @@ from src.server.util.logging.logger_gui import LoggerGui
 
 class FrameRunServer(FrameTab):
     def __init__(self, master=None, **kw):
+        """
+        GUI tab that handles interface and region selection and starting the server.
+        :param master: root window
+        :param kw: args
+        """
         FrameTab.__init__(self, master, **kw)
         self.wii_u_interface = None
         self.normal_interface = None
@@ -54,6 +59,11 @@ class FrameRunServer(FrameTab):
         LoggerGui.extra("Initialized FrameRunServer")
 
     def start_server(self, event=None):
+        """
+        Try to start wpa_supplicant and connect to a Wii U.
+        :param event: Determines if this was a user initiated start.
+        :return: None
+        """
         if event:
             LoggerGui.debug("User clicked start server button")
         LoggerGui.debug("Start server called")
@@ -101,6 +111,11 @@ class FrameRunServer(FrameTab):
         self.label_backend_status.config(text="WAITING")
 
     def wpa_status_changed(self, status):
+        """
+        Handles wpa status changes. Initializes backend server if a connection is made.
+        :param status: status message
+        :return: None
+        """
         LoggerGui.debug("Wpa changed status to %s", status)
         self.label_wpa_status.config(text=status)
         if status == WpaSupplicant.CONNECTED:
@@ -128,12 +143,22 @@ class FrameRunServer(FrameTab):
                                                    "Check %s for details." % constants.PATH_LOG_WPA)
 
     def backend_status_changed(self, status):
+        """
+        Handles backend status changes.
+        :param status: status message
+        :return: None
+        """
         LoggerGui.debug("Backend status changed to %s", status)
         self.label_backend_status.config(text=status)
-        if status == Gamepad.NO_PACKETS:
+        if status in (Gamepad.NO_PACKETS, Gamepad.CRASHED):
             self.stop_server()
 
     def stop_server(self, event=None):
+        """
+        Stops active threads.
+        :param event: Determines if this is a user initiated stop
+        :return: None
+        """
         if event:
             LoggerGui.debug("User clicked stop server button")
         LoggerGui.debug("Stop server called")
@@ -148,6 +173,10 @@ class FrameRunServer(FrameTab):
         self.activate()
 
     def activate(self):
+        """
+        Initializes the frame.
+        :return: None
+        """
         LoggerGui.debug("FrameRunServer activated")
         self.dropdown_wiiu_interface["values"] = InterfaceUtil.get_wiiu_compatible_interfaces()
         self.dropdown_normal_interface["values"] = InterfaceUtil.get_all_interfaces()
@@ -159,5 +188,9 @@ class FrameRunServer(FrameTab):
         self.label_interface_info.config(text="")
 
     def deactivate(self):
+        """
+        De-initializes the frame.
+        :return: None
+        """
         LoggerGui.debug("FrameRunServer deactivated")
         self.stop_server()

@@ -51,12 +51,12 @@ class CommandHandler:
             LoggerBackend.debug('unhandled CMD0 %s %s', id_primary, id_secondary)
             return
         response = self.command_responses["0"][id_primary][id_secondary]
-        response = codecs.decode(response[40:], "hex")
+        response = codecs.decode(response, "hex")
         self.send_response_cmd0(h, response)
 
     def cmd1(self, h):
         response = self.command_responses["1"]
-        response = codecs.decode(response[16:], "hex")
+        response = codecs.decode(response, "hex")
         self.send_response(h, response)
 
     def cmd2(self, h):

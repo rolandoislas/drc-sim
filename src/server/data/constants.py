@@ -1,7 +1,7 @@
 import os
 
 # Info
-VERSION = "1.4"
+VERSION = "1.5"
 
 # Port
 PORT_WII_MSG = 50010
@@ -28,6 +28,7 @@ COMMAND_INPUT_JOYSTICK = b"INPUT_JOYSTICK"
 COMMAND_VIBRATE = b"VIBRATE"
 COMMAND_PING = b"PING"
 COMMAND_PONG = b"PONG"
+COMMAND_INPUT_MIC_BLOW = b"INPUT_MIC_BLOW"
 
 # Paths
 PATH_ROOT = os.path.expanduser("~/.drc-sim/")

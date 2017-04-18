@@ -6,7 +6,7 @@ import time
 from threading import Thread
 
 from src.server.data import constants
-from src.server.data.struct import input
+from src.server.data.struct import input, command
 
 sock_cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock_cmd.bind(("192.168.1.10", constants.PORT_WII_CMD))
@@ -22,44 +22,53 @@ sock_aud.bind(("192.168.1.10", constants.PORT_WII_AUD))
 
 def print_packet(sock, name):
     data = sock.recv(2048)
-    print("%s: %s" % (name, codecs.encode(data, "hex")))
+    print("%s: %s" % (name, codecs.encode(data, "hex").decode()))
 
 
 def send_cmd(data):
     sock_cmd.sendto(data, ("192.168.1.11", constants.PORT_WII_CMD + 100))
 
 
+def send_command_from_string(command_string, sid):
+    send_data = command.header.parse(codecs.decode(command_string, "hex"))
+    send_data.seq_id = sid
+    if send_data.cmd_id == 1:
+        send_data.mic_enabled = 0  # floods logs with audio data if enabled
+    send_data = command.header.build(send_data)
+    send_cmd(send_data)
+    sid += 1
+    sid %= 65535
+    time.sleep(1)
+    return sid
+
+
 def cmd_request():
     sid = 0
     while True:
         data = {
-            0: {0: {0: "000000000c00%s087e0115880040000000000000",
-                    10: "000000000d00%s007e0101780040000a0000000100"},
-                4: {4: "000000000c00%s007e0109780040040400000000",
-                    10: "000000000d00%s117e012fc80040040a0000000100",
-                    11: "000000000c00%s017e0107180040040b00000000"},
-                5: {6: "000000000c00%s007e0101a80040050600000000",
-                    12: "000000001100%s007e0102f80040050c000000050e0300870f",
-                    16: "000001003000%s80010000000000000000000000803e0000000100029e0000000000000070000000404003002d0000"
+            0: {0: {0: "000000000c0005087e0115880040000000000000",
+                    10: "000000000d0005007e0101780040000a0000000100"},
+                4: {4: "000000000c0005007e0109780040040400000000",
+                    10: "000000000d0005117e012fc80040040a0000000100",
+                    11: "000000000c0005017e0107180040040b00000000"},
+                5: {6: "000000000c0005007e0101a80040050600000000",
+                    12: "00000000110005007e0102f80040050c000000050e0300870f",
+                    16: "0000010030000580010000000000000000000000803e0000000100029e0000000000000070000000404003002d0000"
                         "018000400000000000",
-                    24: "000000001600%s007e0101c8004005180000000a54313936333030303030"}
+                    24: "00000000160005007e0101c8004005180000000a54313936333030303030"}
                 },
-            1: {0: {0: "000001003000%s1a010000000000000000000000803e000000010002000000000000000070000000404003002d00000"
-                       "10000000000000000"  # Just CMD 1 - keys 0 0 are there so it fits nicely with the for loop
-                    }
-                }
+            1: "000001003000051a010000000000000000000000803e000000010002000000000000000070000000404003002d00000"
+               "10000000000000000"
         }
-        for command in data.keys():
-            for primary_id in data[command].keys():
-                for secondary_id in data[command][primary_id].keys():
-                    h = hex(sid).replace("0x", "")
-                    if len(h) == 1:
-                        h = "0" + h
-                    send_data = bytes(codecs.decode(data[command][primary_id][secondary_id] % h, "hex"))
-                    print("Sending command %d %d %d" % (command, primary_id, secondary_id))
-                    send_cmd(send_data)
-                    sid += 1
-                    time.sleep(1)
+        for cmd in data.keys():
+            if isinstance(data[cmd], str):
+                print("Sending command %d" % cmd)
+                sid = send_command_from_string(data[cmd], sid)
+            else:
+                for primary_id in data[cmd].keys():
+                    for secondary_id in data[cmd][primary_id].keys():
+                        print("Sending command %d %d %d" % (cmd, primary_id, secondary_id))
+                        sid = send_command_from_string(data[cmd][primary_id][secondary_id], sid)
 
 
 def print_hid(sock):
