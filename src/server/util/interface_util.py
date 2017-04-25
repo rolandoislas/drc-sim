@@ -89,3 +89,4 @@ class InterfaceUtil:
         conf.writelines(["[keyfile]\n", "unmanaged-devices=mac:" + cls.get_mac(interface) + "\n"])
         conf.close()
         ProcessUtil.call(["service", "network-manager", "restart"])
+        ProcessUtil.call(["service", "networking", "restart"])

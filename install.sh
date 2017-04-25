@@ -139,10 +139,10 @@ install_drc_sim() {
     venv_dir="${INSTALL_DIR}venv_drc/"
     # Install virtualenv
     echo "Installing virtualenv"
-    python -m pip install virtualenv &> /dev/null || return 1
+    python3 -m pip install virtualenv &> /dev/null || return 1
     # Create venv
     echo "Creating virtualenv"
-    python -m virtualenv "${venv_dir}" &> /dev/null || return 1
+    python3 -m virtualenv "${venv_dir}" &> /dev/null || return 1
     # Activate venv
     echo "Activating virtualenv"
     source "${venv_dir}bin/activate" || return 1
@@ -157,7 +157,7 @@ install_drc_sim() {
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    python setup.py install &> /dev/null || return 1
+    python3 setup.py install &> /dev/null || return 1
     cd "${cur_dir}" &> /dev/null || return 1
 }
 
