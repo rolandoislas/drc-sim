@@ -142,7 +142,7 @@ install_drc_sim() {
     python3 -m pip install virtualenv &> /dev/null || return 1
     # Create venv
     echo "Creating virtualenv"
-    python3 -m virtualenv "${venv_dir}" &> /dev/null || return 1
+    python3 -m virtualenv -p python3 "${venv_dir}" &> /dev/null || return 1
     # Activate venv
     echo "Activating virtualenv"
     source "${venv_dir}bin/activate" || return 1
