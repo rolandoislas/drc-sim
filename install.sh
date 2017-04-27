@@ -131,12 +131,23 @@ compile_wpa() {
 
 # Installs drc-sim in a virtualenv
 install_drc_sim() {
-    # Get repo
-    get_git ${REPO_DRC_SIM} "drc"
     # Paths
     drc_dir="${INSTALL_DIR}drc/"
     cur_dir="${PWD}"
     venv_dir="${INSTALL_DIR}venv_drc/"
+    # Get source
+    if [[ "${branch_drc_sim}" != "local" ]]; then
+        # Get repo
+        get_git ${REPO_DRC_SIM} "drc"
+    else
+        # Copy local
+        if [[ ! -d "${INSTALL_DIR}" ]]; then
+            mkdir "${INSTALL_DIR}" &> /dev/null || return 1
+        fi
+        rm -rf ${drc_dir} &> /dev/null || return 1
+        mkdir ${drc_dir} &> /dev/null || return 1
+        cp -R "${PWD}/." "${drc_dir%/*}" &> /dev/null || return 1
+    fi
     # Install virtualenv
     echo "Installing virtualenv"
     python3 -m pip install virtualenv &> /dev/null || return 1
@@ -152,8 +163,12 @@ install_drc_sim() {
     # Set the directory
     cd "${drc_dir}" &> /dev/null || return 1
     # Branch to checkout
-    echo "Using branch \"${branch_drc_sim}\" for drc-sim install"
-    git checkout ${branch_drc_sim} &> /dev/null || return 1
+    if [[ "${branch_drc_sim}" != "local" ]]; then
+        echo "Using branch \"${branch_drc_sim}\" for drc-sim install"
+        git checkout ${branch_drc_sim} &> /dev/null || return 1
+    else
+        echo "Using current directory as install source"
+    fi
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
@@ -216,14 +231,15 @@ check_args() {
         echo "  Defaults to install."
         echo "  Arguments:"
         echo "    -h, help : help menu"
-        echo "    branch : branch to use for drc-sim (master or develop) master is used by default"
+        echo "    branch : branch to use for drc-sim (master, develop, local) master is used by default"
         echo "    uninstall : uninstall DRC Sim"
         exit 1
     # Uninstall
     elif [[ "${1}" == "uninstall" ]]; then
         uninstall
     # Install branch
-    elif [[ "${branch_drc_sim}" != "develop" ]] && [[ "${branch_drc_sim}" != "master" ]]; then
+    elif [[ "${branch_drc_sim}" != "develop" ]] && [[ "${branch_drc_sim}" != "master" ]] && 
+         [[ "${branch_drc_sim}" != "local" ]]; then
         echo "Invalid branch \"${1}\""
         check_args "help"
     fi
