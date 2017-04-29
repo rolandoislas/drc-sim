@@ -3,7 +3,6 @@ from src.server.data.config_server import ConfigServer
 from src.server.util.logging.logger_wpa import LoggerWpa
 from src.server.data.args import Args
 from src.server.ui.cli.cli_main import CliMain
-from src.server.ui.gui.gui_main import GuiMain
 from src.server.util.logging.logger import Logger
 from src.server.util.logging.logger_backend import LoggerBackend
 from src.server.util.logging.logger_cli import LoggerCli
@@ -42,6 +41,7 @@ def start():
             ui = CliMain()
         else:
             Logger.info("Enabling GUI")
+            from src.server.ui.gui.gui_main import GuiMain
             ui = GuiMain()
         ui.start()
     except KeyboardInterrupt:

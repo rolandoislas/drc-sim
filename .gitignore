@@ -8,3 +8,4 @@ dist/
 setup.cfg
 temp/
 .drc-sim/
+region_dump.json

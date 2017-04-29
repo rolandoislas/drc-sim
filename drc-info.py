@@ -1,4 +1,5 @@
 import codecs
+import json
 import select
 import socket
 import sys
@@ -19,10 +20,33 @@ sock_vid.bind(("192.168.1.10", constants.PORT_WII_VID))
 sock_aud = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock_aud.bind(("192.168.1.10", constants.PORT_WII_AUD))
 
+json_dump = {}
+
 
 def print_packet(sock, name):
     data = sock.recv(2048)
     print("%s: %s" % (name, codecs.encode(data, "hex").decode()))
+
+
+def print_packet_cmd(sock):
+    data = sock.recv(2048)
+    print("cmd: %s" % codecs.encode(data, "hex").decode())
+    header = command.header.parse(data)
+    if header.packet_type != 2:  # Only accept response packets
+        return
+    size = 8
+    if header.cmd_id == 1:
+        data_string = codecs.encode(data[size + command.header_cmd1.sizeof():], "hex").decode()
+        print("cmd 1: %s" % data_string)
+        json_dump["1"] = data_string
+    elif header.cmd_id == 0:
+        data_string = codecs.encode(data[size + command.header_cmd0.sizeof():], "hex").decode()
+        print("cmd 0 %d %d: %s" % (header.id_primary, header.id_secondary, data_string))
+        if "0" not in json_dump:
+            json_dump["0"] = {}
+        if str(header.id_primary) not in json_dump["0"]:
+            json_dump["0"][str(header.id_primary)] = {}
+        json_dump["0"][str(header.id_primary)][str(header.id_secondary)] = data_string
 
 
 def send_cmd(data):
@@ -86,18 +110,26 @@ if __name__ == '__main__':
         send_thread.start()
 
     while True:
-        rlist, wlist, xlist = select.select((sock_cmd, sock_msg, sock_hid, sock_vid, sock_aud), (), (), 1)
-        if rlist:
-            for s in rlist:
-                if s == sock_hid and hid:
-                    print_hid(s)
-                if hid:
-                    continue
-                if s == sock_aud:
-                    print_packet(s, "aud")
-                elif s == sock_vid:
-                    print_packet(s, "vid")
-                elif s == sock_cmd:
-                    print_packet(s, "cmd")
-                elif s == sock_msg:
-                    print_packet(s, "msg")
+        try:
+            rlist, wlist, xlist = select.select((sock_cmd, sock_msg, sock_hid, sock_vid, sock_aud), (), (), 1)
+            if rlist:
+                for s in rlist:
+                    if s == sock_hid and hid:
+                        print_hid(s)
+                    if hid:
+                        continue
+                    if s == sock_aud:
+                        print_packet(s, "aud")
+                    elif s == sock_vid:
+                        print_packet(s, "vid")
+                    elif s == sock_cmd:
+                        print_packet_cmd(s)
+                    elif s == sock_msg:
+                        print_packet(s, "msg")
+        except KeyboardInterrupt:
+            if not hid:
+                dump = open("region_dump.json", "w")
+                dump.write(json.dumps(json_dump, indent=4))
+                dump.close()
+                print("Wrote dump to region_dump.json")
+            sys.exit(0)
