@@ -8,4 +8,7 @@ sudo: required
 install:
   - sudo apt-get -qq update
   - sudo ./install.sh local
+  - python setup.py install
+before_script:
+  - export PYTHONPATH=$(pwd)
 script: pytest
