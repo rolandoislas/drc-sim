@@ -5,6 +5,7 @@ from threading import Thread
 
 from src.server.control.server import Server
 from src.server.control.util.controller import Controller
+from src.server.data.args import Args
 from src.server.data.config_server import ConfigServer
 from src.server.net import socket_handlers
 from src.server.net import sockets
@@ -64,6 +65,12 @@ class Gamepad(StatusSendingThread):
         :return: None
         """
         data = sock.recv(2048)
+        # Dump packet
+        if Args.args.dump:
+            if sock == sockets.Sockets.WII_VID_S:
+                with open("video.bin", "ab") as video_packet:
+                    video_packet.write(data + b"|\n")
+        # Handle packet
         try:
             socket_handlers.SocketHandlers.wii_handlers[sock].update(data)
         except socket.error as e:

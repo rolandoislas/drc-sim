@@ -23,6 +23,9 @@ class Args:
                                 help="verbose debug output")
         arg_parser.add_argument("-c", "--cli", action="store_const", const=True, default=False,
                                 help="disable gui")
+        # Dump
+        arg_parser.add_argument("-p", "--dump", action="store_const", const=True, default=False,
+                                help="Dumps Wii U packets")
         # CLI
         args = ["-c", "--cli", "-h", "--help"]
         found = False

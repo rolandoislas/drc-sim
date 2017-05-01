@@ -50,7 +50,7 @@ def start():
     except Exception as e:
         if ui:
             ui.stop()
-        Logger.throw(e)
+        Logger.exception(e)
     Logger.info("Exiting")
 
 

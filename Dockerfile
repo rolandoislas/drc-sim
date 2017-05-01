@@ -30,5 +30,5 @@ ADD MANIFEST.in /root/
 RUN cd /root/ && python3 setup.py install
 
 ENV TERM xterm
-ENTRYPOINT ["drc-sim-backend.py"]
+ENTRYPOINT ["drc-sim-backend.py", "--cli"]
 CMD ["-h"]

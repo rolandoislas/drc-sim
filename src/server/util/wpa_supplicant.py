@@ -36,7 +36,6 @@ class WpaSupplicant(StatusSendingThread):
         self.running = False
         self.status = self.UNKNOWN
         self.status_check_thread = None
-        self.status_changed_listeners = []
         self.wpa_supplicant_process = None
         self.psk_thread = None
         self.psk_thread_cli = None
@@ -245,8 +244,7 @@ class WpaSupplicant(StatusSendingThread):
             # Check for found Wii U ssids
             if len(wii_u_bssids) == 0:
                 LoggerWpa.debug("No Wii U SSIDs found")
-                for callback in self.status_changed_listeners:
-                    callback(self.NOT_FOUND)
+                self.set_status(self.NOT_FOUND)
                 return
             # attempt to pair with any wii u bssid
             for bssid in wii_u_bssids:
@@ -259,8 +257,7 @@ class WpaSupplicant(StatusSendingThread):
                     # save conf
                     LoggerWpa.debug("PSK obtained")
                     self.save_connect_conf(bssid)
-                    for callback in self.status_changed_listeners:
-                        callback(self.DISCONNECTED)
+                    self.set_status(self.DISCONNECTED)
                     return
                 except pexpect.TIMEOUT:
                     LoggerWpa.debug("CLI expect BSSID auth failed")
@@ -270,12 +267,10 @@ class WpaSupplicant(StatusSendingThread):
         except pexpect.TIMEOUT as e:
             LoggerWpa.debug("PSK get attempt ended with an error.")
             LoggerWpa.exception(e)
-            for callback in self.status_changed_listeners:
-                callback(self.FAILED_START)
+            self.set_status(self.FAILED_START)
         # Failed to authenticate
         LoggerWpa.debug("Could not authenticate with any SSIDs")
-        for callback in self.status_changed_listeners:
-            callback(self.TERMINATED)
+        self.set_status(self.TERMINATED)
 
     @staticmethod
     def save_connect_conf(bssid):
@@ -302,3 +297,4 @@ class WpaSupplicant(StatusSendingThread):
         save_conf = open(constants.PATH_CONF_CONNECT, "w")
         save_conf.writelines(lines)
         save_conf.close()
+        LoggerWpa.info("Authenticated with the Wii U")

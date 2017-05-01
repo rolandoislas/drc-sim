@@ -80,7 +80,7 @@ class VideoHandler(ServiceBase):
 
         return nals
 
-    def update(self, packet):
+    def update(self, packet, test=False):
         LoggerBackend.verbose("Received video packet")
         h = video.header.parse(packet)
         is_idr = self.packet_is_idr(packet)
@@ -97,7 +97,8 @@ class VideoHandler(ServiceBase):
                     self.is_streaming = True
                 else:
                     # request a new IDR frame
-                    Sockets.WII_MSG_S.sendto(b'\x01\x00\x00\x00', ('192.168.1.10', constants.PORT_WII_MSG))
+                    if not test:
+                        Sockets.WII_MSG_S.sendto(b'\x01\x00\x00\x00', ('192.168.1.10', constants.PORT_WII_MSG))
                     return
 
         self.frame.fromstring(packet[16:])

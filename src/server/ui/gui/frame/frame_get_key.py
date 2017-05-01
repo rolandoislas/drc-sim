@@ -1,9 +1,9 @@
-import os
 from tkinter import PhotoImage, Button, END, messagebox
 from tkinter.ttk import Entry, Progressbar, Combobox
 
 from src.server.data import constants
 from src.server.data.resource import Resource
+from src.server.ui.cli.cli_main import CliMain
 from src.server.ui.gui.frame.frame_tab import FrameTab
 from src.server.util.interface_util import InterfaceUtil
 from src.server.util.logging.logger_gui import LoggerGui
@@ -104,11 +104,7 @@ class FrameGetKey(FrameTab):
 
     def get_psk(self, code, interface):
         LoggerGui.debug("Attempting to get PSK")  # Don't log code
-        if not os.path.exists(constants.PATH_TMP):
-            os.mkdir(constants.PATH_TMP)
-        tmp_conf = open(constants.PATH_CONF_CONNECT_TMP, "w")
-        tmp_conf.write(Resource("config/get_psk.conf").resource)
-        tmp_conf.close()
+        CliMain.create_temp_config_file()
         self.wpa_supplicant = WpaSupplicant()
         self.wpa_supplicant.add_status_change_listener(self.wpa_status_changed)
         self.wpa_supplicant.get_psk(constants.PATH_CONF_CONNECT_TMP, interface, code)

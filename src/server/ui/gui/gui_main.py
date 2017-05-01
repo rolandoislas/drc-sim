@@ -21,6 +21,7 @@ class GuiMain:
         icon = tkinter.PhotoImage(data=Resource("image/icon.gif").resource)
         self.main_window.tk.call("wm", "iconphoto", self.main_window, icon)
         self.main_window.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.main_window.resizable(False, False)
         # Notebook
         self.tab_id = None
         self.notebook = Notebook(self.main_window, width=300, height=150)
