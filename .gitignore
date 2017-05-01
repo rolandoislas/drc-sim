@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
-.idea
+.idea/
 .pypy/
 build/
 dist/
@@ -8,3 +8,6 @@ dist/
 setup.cfg
 temp/
 .drc-sim/
+region_dump.json
+*.bin
+.cache/

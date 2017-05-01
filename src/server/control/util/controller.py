@@ -1,8 +1,10 @@
-import array
 import time
+
+import array
 
 from src.server.data import constants
 from src.server.data.config_server import ConfigServer
+from src.server.data.struct import input
 from src.server.net import sockets
 from src.server.net.codec import Codec
 
@@ -13,72 +15,27 @@ class Controller:
     HID_UPDATE_INTERVAL = int((1. / 180.) * 1000.)  # 5 - leaving it since it may make sense later
     # Button buffers
     button_buffer = (0, 0)
-    l3r3_buffer = (0, 0)
+    extra_button_buffer = (0, 0)
     joystick_buffer = ((0, 0, 0, 0), 0)
     touch_buffer = (((-1, -1), (-1, -1)), 0)
+    send_audio = (False, 0)
 
     def __init__(self):
         pass
-
-    # The following get_####_input_report methods modify a passed report array
-
-    @classmethod
-    def get_button_input_report(cls, report):
-        button_bits = cls.get_button_input()
-        # 16bit @ 2
-        report[1] = (button_bits >> 8) | ((button_bits & 0xff) << 8)
-        return report
-
-    @classmethod
-    def get_l3_r3_input_report(cls, report):
-        # 8bit @ 80
-        l3r3_bits = cls.get_l3_r3_input()
-        report[40] = l3r3_bits
-        return report
 
     @classmethod
     def scale_stick(cls, old_value, old_min, old_max, new_min, new_max):
         return int((((old_value - old_min) * (new_max - new_min)) / (old_max - old_min)) + new_min)
 
     @classmethod
-    def get_joystick_input_report(cls, report):
-        # 16bit LE array @ 6
-        # LX, LY, RX, RY
-        # 0: l stick l/r
-        # 1: l stick u/d
-        # 2: l trigger
-        # 3: r stick l/r
-        # 4: r stick u/d
-        # 5: r trigger
-        for axis in xrange(4):
-            orig = cls.get_joystick_input(axis)
-            scaled = 0x800
-            if abs(orig) > 0.2:
-                if axis in (0, 3):
-                    scaled = cls.scale_stick(orig, -1, 1, 900, 3200)
-                elif axis in (1, 4):
-                    scaled = cls.scale_stick(orig, 1, -1, 900, 3200)
-            # print '%04i %04i %f' % (i, scaled, orig)
-            report[3 + axis] = scaled
-        return report
-
-    @classmethod
     def get_touch_input_report(cls, report):
-        # touchpanel crap @ 36 - 76
-        # byte_18 = 0
-        byte_17 = 3
-        # byte_9b8 = 0
-        byte_9fd = 6
-        umi_fw_rev = 0x40
-        # byte_9fb = 0
-        byte_19 = 2
         point, screen = cls.get_touch_input()
         if point[0] >= 0 and point[1] >= 0:
             x = cls.scale_stick(point[0], 0, screen[0], 200, 3800)
             y = cls.scale_stick(point[1], 0, screen[1], 3800, 200)
             z1 = 2000
 
-            for i in xrange(10):
+            for i in range(10):
                 report[18 + i * 2 + 0] = 0x8000 | x
                 report[18 + i * 2 + 1] = 0x8000 | y
 
@@ -86,19 +43,6 @@ class Controller:
             report[18 + 0 * 2 + 1] |= ((z1 >> 3) & 7) << 12
             report[18 + 1 * 2 + 0] |= ((z1 >> 6) & 7) << 12
             report[18 + 1 * 2 + 1] |= ((z1 >> 9) & 7) << 12
-
-        report[18 + 3 * 2 + 1] |= ((byte_17 >> 0) & 7) << 12
-        report[18 + 4 * 2 + 0] |= ((byte_17 >> 3) & 7) << 12
-        report[18 + 4 * 2 + 1] |= ((byte_17 >> 6) & 3) << 12
-
-        report[18 + 5 * 2 + 0] |= ((byte_9fd >> 0) & 7) << 12
-        report[18 + 5 * 2 + 1] |= ((byte_9fd >> 3) & 7) << 12
-        report[18 + 6 * 2 + 0] |= ((byte_9fd >> 6) & 3) << 12
-
-        report[18 + 7 * 2 + 0] |= ((umi_fw_rev >> 4) & 7) << 12
-
-        # TODO checkout what's up with | 4
-        report[18 + 9 * 2 + 1] |= ((byte_19 & 2) | 4) << 12
         return report
 
     # Getters
@@ -116,10 +60,10 @@ class Controller:
         return cls.button_buffer[0]
 
     @classmethod
-    def get_l3_r3_input(cls):
-        if not cls.is_input_within_timeframe(cls.l3r3_buffer):
+    def get_extra_button_input(cls):
+        if not cls.is_input_within_timeframe(cls.extra_button_buffer):
             return 0
-        return cls.l3r3_buffer[0]
+        return cls.extra_button_buffer[0]
 
     @classmethod
     def get_joystick_input(cls, joystick_id):
@@ -134,12 +78,18 @@ class Controller:
         return cls.touch_buffer[0]
 
     @classmethod
+    def get_send_audio(cls):
+        if not cls.is_input_within_timeframe(cls.send_audio):
+            return False
+        return cls.send_audio
+
+    @classmethod
     def set_button_input(cls, data):
         cls.button_buffer = Codec.decode_input(data)
 
     @classmethod
-    def set_l3r3_input(cls, data):
-        cls.l3r3_buffer = Codec.decode_input(data)
+    def set_extra_button_input(cls, data):
+        cls.extra_button_buffer = Codec.decode_input(data)
 
     @classmethod
     def set_touch_input(cls, data):
@@ -149,26 +99,35 @@ class Controller:
     def set_joystick_input(cls, data):
         cls.joystick_buffer = Codec.decode_input(data)
 
-    #  Update
+    @classmethod
+    def set_send_audio(cls, data):
+        cls.send_audio = Codec.decode_input(data)
 
     @classmethod
     def send_hid_update(cls):
+        report_array = array.array("H", b"\x00" * input.input_data.sizeof())
+        report_array = cls.get_touch_input_report(report_array)  # TODO handle this in the struct
+        report = input.input_data.parse(report_array.tobytes())
 
-        report = array.array('H', '\0\0' * 0x40)
+        report.sequence_id = cls.hid_seq_id
+        report.buttons = cls.get_button_input()
+        report.power_status = 0
+        report.battery_charge = 0
+        report.extra_buttons = cls.get_extra_button_input()
+        report.left_stick_x = 8 + int(cls.get_joystick_input(0) * 8)
+        report.left_stick_y = 8 - int(cls.get_joystick_input(1) * 8)
+        report.right_stick_x = 8 + int(cls.get_joystick_input(2) * 8)
+        report.right_stick_y = 8 - int(cls.get_joystick_input(3) * 8)
+        report.audio_volume = 0
+        report.accel_x = 0
+        report.accel_y = 0
+        report.accel_z = 0
+        report.gyro_roll = 0
+        report.gyro_yaw = 0
+        report.gyro_pitch = 0
+        report.fw_version_neg = 215
 
-        # 16bit LE @ 0 seq_id
-        # seems to be ignored
-        report[0] = cls.hid_seq_id
-
-        report = cls.get_button_input_report(report)
-        report = cls.get_l3_r3_input_report(report)
-        report = cls.get_joystick_input_report(report)
-        report = cls.get_touch_input_report(report)
-
-        # 16bit @ 126
-        report[0x3f] = 0xe000
-        # print report.tostring().encode('hex')
-        sockets.Sockets.WII_HID_S.sendto(report, ('192.168.1.10', constants.PORT_WII_HID))
+        sockets.Sockets.WII_HID_S.sendto(input.input_data.build(report), ('192.168.1.10', constants.PORT_WII_HID))
         cls.hid_seq_id = (cls.hid_seq_id + 1) % 65535
 
     @classmethod

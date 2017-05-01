@@ -6,9 +6,9 @@ RUN apt-get update \
 RUN apt-get update \
     && apt-get install -y \
     wpasupplicant-drc \
-    python2.7 \
-    python2.7-dev \
-    python-pip \
+    python3 \
+    python3-dev \
+    python3-pip \
     libffi-dev \
     zlib1g-dev \
     libjpeg-dev \
@@ -20,15 +20,15 @@ RUN apt-get update \
     libswscale-dev \
     rfkill \
     isc-dhcp-client \
-    ifmetric \
-    python-tk
+    ifmetric
 
 ADD drc*.py /root/
 ADD setup.py /root/
 ADD src/ /root/src/
 ADD resources/ /root/resources/
 ADD MANIFEST.in /root/
-RUN cd /root/ && python setup.py install && rm -rf /root/*
+RUN cd /root/ && python3 setup.py install
 
 ENV TERM xterm
-ENTRYPOINT ["drc-sim-backend.py"]
+ENTRYPOINT ["drc-sim-backend.py", "--cli"]
+CMD ["-h"]

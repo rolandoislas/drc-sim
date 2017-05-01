@@ -19,9 +19,9 @@ check_os() {
     if command -v apt-get &> /dev/null; then
         echo "Command apt-get found."
         # Backend dependencies
-        dependencies=("python2.7" "python2.7-dev" "python-pip" "libffi-dev" "zlib1g-dev" "libjpeg-dev"
+        dependencies=("python3" "python3-dev" "python3-pip" "libffi-dev" "zlib1g-dev" "libjpeg-dev"
         "net-tools" "wireless-tools" "sysvinit-utils" "psmisc" "libavcodec-dev" "libswscale-dev" "rfkill"
-        "isc-dhcp-client" "ifmetric" "python-tk" "gksu")
+        "isc-dhcp-client" "ifmetric" "python3-tk" "gksu")
         # Wpa supplicant compile dependencies
         dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make")
     else
@@ -131,18 +131,29 @@ compile_wpa() {
 
 # Installs drc-sim in a virtualenv
 install_drc_sim() {
-    # Get repo
-    get_git ${REPO_DRC_SIM} "drc"
     # Paths
     drc_dir="${INSTALL_DIR}drc/"
     cur_dir="${PWD}"
     venv_dir="${INSTALL_DIR}venv_drc/"
+    # Get source
+    if [[ "${branch_drc_sim}" != "local" ]]; then
+        # Get repo
+        get_git ${REPO_DRC_SIM} "drc"
+    else
+        # Copy local
+        if [[ ! -d "${INSTALL_DIR}" ]]; then
+            mkdir "${INSTALL_DIR}" &> /dev/null || return 1
+        fi
+        rm -rf ${drc_dir} &> /dev/null || return 1
+        mkdir ${drc_dir} &> /dev/null || return 1
+        cp -R "${PWD}/." "${drc_dir%/*}" &> /dev/null || return 1
+    fi
     # Install virtualenv
     echo "Installing virtualenv"
-    python -m pip install virtualenv &> /dev/null || return 1
+    python3 -m pip install virtualenv &> /dev/null || return 1
     # Create venv
     echo "Creating virtualenv"
-    python -m virtualenv "${venv_dir}" &> /dev/null || return 1
+    python3 -m virtualenv -p python3 "${venv_dir}" &> /dev/null || return 1
     # Activate venv
     echo "Activating virtualenv"
     source "${venv_dir}bin/activate" || return 1
@@ -152,12 +163,16 @@ install_drc_sim() {
     # Set the directory
     cd "${drc_dir}" &> /dev/null || return 1
     # Branch to checkout
-    echo "Using branch \"${branch_drc_sim}\" for drc-sim install"
-    git checkout ${branch_drc_sim} &> /dev/null || return 1
+    if [[ "${branch_drc_sim}" != "local" ]]; then
+        echo "Using branch \"${branch_drc_sim}\" for drc-sim install"
+        git checkout ${branch_drc_sim} &> /dev/null || return 1
+    else
+        echo "Using current directory as install source"
+    fi
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    python setup.py install &> /dev/null || return 1
+    python3 setup.py install &> /dev/null || return 1
     cd "${cur_dir}" &> /dev/null || return 1
 }
 
@@ -216,14 +231,15 @@ check_args() {
         echo "  Defaults to install."
         echo "  Arguments:"
         echo "    -h, help : help menu"
-        echo "    branch : branch to use for drc-sim (master or develop) master is used by default"
+        echo "    branch : branch to use for drc-sim (master, develop, local) master is used by default"
         echo "    uninstall : uninstall DRC Sim"
         exit 1
     # Uninstall
     elif [[ "${1}" == "uninstall" ]]; then
         uninstall
     # Install branch
-    elif [[ "${branch_drc_sim}" != "develop" ]] && [[ "${branch_drc_sim}" != "master" ]]; then
+    elif [[ "${branch_drc_sim}" != "develop" ]] && [[ "${branch_drc_sim}" != "master" ]] && 
+         [[ "${branch_drc_sim}" != "local" ]]; then
         echo "Invalid branch \"${1}\""
         check_args "help"
     fi

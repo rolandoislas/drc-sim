@@ -1,7 +1,14 @@
 language: python
 python:
-  - "2.7"
-  - "pypy"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+dist: trusty
+sudo: required
 install:
-  - pip install .
-script: True
+  - sudo apt-get -qq update
+  - sudo ./install.sh local
+  - python setup.py install
+before_script:
+  - export PYTHONPATH=$(pwd)
+script: pytest

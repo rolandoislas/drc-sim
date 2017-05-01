@@ -16,12 +16,16 @@ class Resource:
         current_dir = os.path.dirname(__file__).split(os.sep)
         # Check local files first
         file_path = "/"
-        if current_dir >= 3:
+        if len(current_dir) >= 3:
             for path in range(0, len(current_dir) - 3):
                 file_path = join(file_path, current_dir[path])
             file_path = join(file_path, pre, in_path)
             if os.path.exists(file_path):
-                self.resource = open(file_path).read()
+                try:
+                    self.resource = open(file_path).read()
+                except UnicodeDecodeError:
+                    Logger.debug("Opening resource as binary.")
+                    self.resource = open(file_path, "rb").read()
                 Logger.extra("Found resource in local resource directory.")
                 return
         # Attempt to get from package

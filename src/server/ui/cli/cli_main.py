@@ -1,10 +1,13 @@
+import os
 import time
 
 from src.server.control.gamepad import Gamepad
 from src.server.data import constants
 from src.server.data.args import Args
+from src.server.data.resource import Resource
 from src.server.util.interface_util import InterfaceUtil
 from src.server.util.logging.logger_cli import LoggerCli
+from src.server.util.process_util import ProcessUtil
 from src.server.util.wpa_supplicant import WpaSupplicant
 
 
@@ -26,6 +29,7 @@ class CliMain:
 
     def stop(self):
         LoggerCli.info("Stopping")
+        ProcessUtil.call(["killall", "dhclient"])
         self.getting_key = False
         if self.gamepad and self.gamepad.running:
             self.gamepad.close()
@@ -49,7 +53,8 @@ class CliMain:
         while self.gamepad.running:
             time.sleep(1)
 
-    def check_interfaces(self, normal_interface, wii_u_interface):
+    @staticmethod
+    def check_interfaces(normal_interface, wii_u_interface):
         if normal_interface == wii_u_interface:
             LoggerCli.throw(Exception("The Wii U and normal interfaces cannot be the same."))
         try:
@@ -82,6 +87,7 @@ class CliMain:
         if len(Args.args.wps_pin) != 4:
             LoggerCli.throw(Exception("WPS PIN should be 4 digits"))
         self.prompt_unmanaged(wii_u_interface)
+        self.create_temp_config_file()
         self.wpa_supplicant = WpaSupplicant()
         self.wpa_supplicant.get_psk(constants.PATH_CONF_CONNECT_TMP, wii_u_interface, Args.args.wps_pin)
         self.wpa_supplicant.add_status_change_listener(self.status_changed_key)
@@ -89,15 +95,24 @@ class CliMain:
         while self.getting_key:
             time.sleep(1)
 
-    def prompt_unmanaged(self, interface):
+    @staticmethod
+    def prompt_unmanaged(interface):
         if not InterfaceUtil.is_managed_by_network_manager(interface):
             return
         LoggerCli.info("The interface \"%s\" is managed by Network Manager. It must be set to "
                        "unmanaged to function with DRC Sim. Network manager will not be able to "
                        "use this interface after it is set to unmanaged.", interface)
-        response = raw_input("Set %s as unmanaged? (y/n)" % interface)
+        response = input("Set %s as unmanaged? (y/n)" % interface)
         LoggerCli.debug(response)
         if response in ("y", "yes", "Y", "Yes", "YES"):
             InterfaceUtil.set_unmanaged_by_network_manager(interface)
         else:
             LoggerCli.throw(Exception("Interface is managed by Network Manager."))
+
+    @classmethod
+    def create_temp_config_file(cls):
+        if not os.path.exists(constants.PATH_TMP):
+            os.mkdir(constants.PATH_TMP)
+        tmp_conf = open(constants.PATH_CONF_CONNECT_TMP, "w")
+        tmp_conf.write(Resource("config/get_psk.conf").resource)
+        tmp_conf.close()

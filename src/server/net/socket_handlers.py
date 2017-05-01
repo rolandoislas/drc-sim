@@ -28,4 +28,13 @@ class SocketHandlers:
         self.server_command_handlers = {
             sockets.Sockets.SERVER_CMD_S: ServiceCMD
         }
+
+    def get_handler_keys(self):
+        return list(
+            list(self.wii_handlers.keys()) +
+            list(self.server_media_handlers.keys()) +
+            list(self.server_command_handlers.keys())
+        )
+
+
 SocketHandlers = SocketHandlers()

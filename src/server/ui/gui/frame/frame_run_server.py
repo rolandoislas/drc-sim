@@ -1,6 +1,6 @@
 import os
-import tkMessageBox
-from ttk import Label, Button, Combobox
+from tkinter import messagebox
+from tkinter.ttk import Label, Button, Combobox
 
 from src.server.control.gamepad import Gamepad
 from src.server.net import socket_handlers, sockets
@@ -14,6 +14,11 @@ from src.server.util.logging.logger_gui import LoggerGui
 
 class FrameRunServer(FrameTab):
     def __init__(self, master=None, **kw):
+        """
+        GUI tab that handles interface and region selection and starting the server.
+        :param master: root window
+        :param kw: args
+        """
         FrameTab.__init__(self, master, **kw)
         self.wii_u_interface = None
         self.normal_interface = None
@@ -54,44 +59,49 @@ class FrameRunServer(FrameTab):
         LoggerGui.extra("Initialized FrameRunServer")
 
     def start_server(self, event=None):
+        """
+        Try to start wpa_supplicant and connect to a Wii U.
+        :param event: Determines if this was a user initiated start.
+        :return: None
+        """
         if event:
             LoggerGui.debug("User clicked start server button")
         LoggerGui.debug("Start server called")
         if self.label_backend_status["text"] != Gamepad.STOPPED and \
                 (self.label_wpa_status["text"] not in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED)):
-            tkMessageBox.showerror("Running", "Server is already running")
+            messagebox.showerror("Running", "Server is already running")
             return
         if not os.path.exists(constants.PATH_CONF_CONNECT):
-            tkMessageBox.showerror("Auth Error",
-                                   "No auth details found. Use the \"Get Key\" tab to pair with a Wii U.")
+            messagebox.showerror("Auth Error",
+                                 "No auth details found. Use the \"Get Key\" tab to pair with a Wii U.")
             self.activate()
             return
         self.normal_interface = self.dropdown_normal_interface.get()
         self.wii_u_interface = self.dropdown_wiiu_interface.get()
         if not self.normal_interface or not self.wii_u_interface:
-            tkMessageBox.showerror("Interface Error", "Two interfaces need to be selected.")
+            messagebox.showerror("Interface Error", "Two interfaces need to be selected.")
             self.activate()
             return
         if self.normal_interface == self.wii_u_interface:
-            tkMessageBox.showerror("Interface Error", "The selected normal and Wii U interfaces must be different.")
+            messagebox.showerror("Interface Error", "The selected normal and Wii U interfaces must be different.")
             self.activate()
             return
         try:
             InterfaceUtil.get_mac(self.normal_interface)
             InterfaceUtil.get_mac(self.wii_u_interface)
         except ValueError:
-            tkMessageBox.showerror("Interface Error", "The selected Interface is no longer available.")
+            messagebox.showerror("Interface Error", "The selected Interface is no longer available.")
             self.activate()
             return
         if InterfaceUtil.is_managed_by_network_manager(self.wii_u_interface):
-            set_unmanaged = tkMessageBox.askokcancel(
+            set_unmanaged = messagebox.askokcancel(
                 "Managed Interface", "This interface is managed by Network Manager. To use it with DRC Sim it needs "
                                      "to be set to unmanaged. Network Manager will not be able to control the interface"
                                      " after this.\nSet %s to unmanaged?" % self.wii_u_interface)
             if set_unmanaged:
                 InterfaceUtil.set_unmanaged_by_network_manager(self.wii_u_interface)
             else:
-                tkMessageBox.showerror("Managed Interface", "Selected Wii U interface is managed by Network Manager.")
+                messagebox.showerror("Managed Interface", "Selected Wii U interface is managed by Network Manager.")
                 self.activate()
                 return
         LoggerGui.debug("Starting wpa supplicant")
@@ -101,6 +111,11 @@ class FrameRunServer(FrameTab):
         self.label_backend_status.config(text="WAITING")
 
     def wpa_status_changed(self, status):
+        """
+        Handles wpa status changes. Initializes backend server if a connection is made.
+        :param status: status message
+        :return: None
+        """
         LoggerGui.debug("Wpa changed status to %s", status)
         self.label_wpa_status.config(text=status)
         if status == WpaSupplicant.CONNECTED:
@@ -115,31 +130,41 @@ class FrameRunServer(FrameTab):
             CommandHandler.set_region(socket_handlers.SocketHandlers.wii_handlers[sockets.Sockets.WII_CMD_S],
                                       self.dropdown_region.get())
             self.label_interface_info.config(text="Server IP: " + InterfaceUtil.get_ip(self.normal_interface)
-                                             + "\n" + os.uname()[1])
+                                                  + "\n" + os.uname()[1])
         elif status in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED):
             self.stop_server()
         elif status == WpaSupplicant.NOT_FOUND:
             self.stop_server()
-            tkMessageBox.showerror("Scan Error", "No Wii U found.")
+            messagebox.showerror("Scan Error", "No Wii U found.")
         elif status == WpaSupplicant.FAILED_START:
             self.stop_server()
-            tkMessageBox.showerror("Cannot Connect", "Failed to start wpa_supplicant_drc. This could mean there is a "
-                                                     "configuration error or wpa_supplicant_drc is not installed. "
-                                                     "Check %s for details." % constants.PATH_LOG_WPA)
+            messagebox.showerror("Cannot Connect", "Failed to start wpa_supplicant_drc. This could mean there is a "
+                                                   "configuration error or wpa_supplicant_drc is not installed. "
+                                                   "Check %s for details." % constants.PATH_LOG_WPA)
 
     def backend_status_changed(self, status):
+        """
+        Handles backend status changes.
+        :param status: status message
+        :return: None
+        """
         LoggerGui.debug("Backend status changed to %s", status)
         self.label_backend_status.config(text=status)
-        if status == Gamepad.NO_PACKETS:
+        if status in (Gamepad.NO_PACKETS, Gamepad.CRASHED):
             self.stop_server()
 
     def stop_server(self, event=None):
+        """
+        Stops active threads.
+        :param event: Determines if this is a user initiated stop
+        :return: None
+        """
         if event:
             LoggerGui.debug("User clicked stop server button")
         LoggerGui.debug("Stop server called")
         if event and (self.label_wpa_status["text"] in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED)
                       and self.label_backend_status["text"] == Gamepad.STOPPED):
-            tkMessageBox.showerror("Stop", "Server is not running.")
+            messagebox.showerror("Stop", "Server is not running.")
             return
         if self.gamepad:
             self.gamepad.close()
@@ -148,6 +173,10 @@ class FrameRunServer(FrameTab):
         self.activate()
 
     def activate(self):
+        """
+        Initializes the frame.
+        :return: None
+        """
         LoggerGui.debug("FrameRunServer activated")
         self.dropdown_wiiu_interface["values"] = InterfaceUtil.get_wiiu_compatible_interfaces()
         self.dropdown_normal_interface["values"] = InterfaceUtil.get_all_interfaces()
@@ -159,5 +188,9 @@ class FrameRunServer(FrameTab):
         self.label_interface_info.config(text="")
 
     def deactivate(self):
+        """
+        De-initializes the frame.
+        :return: None
+        """
         LoggerGui.debug("FrameRunServer deactivated")
         self.stop_server()

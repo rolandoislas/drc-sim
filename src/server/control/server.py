@@ -16,7 +16,7 @@ class Server:
             data, address = sock.recvfrom(2048)
             command, data = Codec.decode_command(data)
             socket_handlers.SocketHandlers.server_command_handlers[sock].update(address, command, data)
-        except socket.error, e:
+        except socket.error as e:
             LoggerBackend.warn(e.strerror)
 
     @staticmethod

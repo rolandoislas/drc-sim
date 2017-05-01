@@ -66,7 +66,7 @@ class H264Decoder6:
                 #include <libavcodec/avcodec.h>
                 #include <libswscale/swscale.h>
                 ''', libraries=['avcodec', 'swscale'])
-        except VerificationError, e:
+        except VerificationError as e:
             Logger.throw(e, "Decoder error. Please open an issue on GitHub with the crash info.")
             raise e
 
