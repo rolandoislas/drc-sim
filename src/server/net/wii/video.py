@@ -107,17 +107,16 @@ class VideoHandler(ServiceBase):
             # Get image
             nals = self.h264_nal_encapsulate(is_idr, self.frame)
             image_buffer = self.decoder.get_image_buffer(nals.tostring())
+            if not image_buffer:
+                return
             # Check fps limit
-            if ConfigServer.fps < 60 and time.time() - self.last_sent_time < 1. / ConfigServer.fps:
+            if time.time() - self.last_sent_time < 1. / ConfigServer.fps:
                 return
             # Reduce quality at the expense of CPU
-            if ConfigServer.quality < 100:
-                image = Image.frombuffer("RGB", (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT),
-                                         image_buffer, "raw", "RGB", 0, 1)
-                ib = BytesIO()
-                image.save(ib, "JPEG", quality=ConfigServer.quality)
-                ServiceVID.broadcast(ib.getvalue())
-            else:
-                ServiceVID.broadcast(image_buffer)
+            image = Image.frombuffer("RGB", (constants.WII_VIDEO_WIDTH, constants.WII_CAMERA_HEIGHT),
+                                     bytes(image_buffer), "raw", "RGB", 0, 1)
+            ib = BytesIO()
+            image.save(ib, "JPEG", quality=ConfigServer.quality)
+            ServiceVID.broadcast(ib.getvalue())
             # Update time
             self.last_sent_time = time.time()

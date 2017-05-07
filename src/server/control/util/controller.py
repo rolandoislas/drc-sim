@@ -12,7 +12,7 @@ from src.server.net.codec import Codec
 class Controller:
     hid_seq_id = 0
     hid_update_timestamp = 0
-    HID_UPDATE_INTERVAL = int((1. / 180.) * 1000.)  # 5 - leaving it since it may make sense later
+    HID_UPDATE_INTERVAL = int((1 / 10) * 1000)  # should be 180 per second FIXME python 3 sockets are slow
     # Button buffers
     button_buffer = (0, 0)
     extra_button_buffer = (0, 0)
