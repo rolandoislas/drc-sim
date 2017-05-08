@@ -17,6 +17,13 @@ class StatusSendingThread:
             for listener in self.status_change_listeners:
                 listener(status)
 
+    def get_status(self):
+        """
+        Status getter
+        :return: status string
+        """
+        return self.status
+
     def add_status_change_listener(self, callback):
         """
         Add a callback that will be called on status change.

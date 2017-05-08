@@ -1,7 +1,8 @@
 import os
 
 # Info
-VERSION = "1.5"
+VERSION = "1.6"
+NAME = "DRC SIM Server"
 
 # Port
 PORT_WII_MSG = 50010

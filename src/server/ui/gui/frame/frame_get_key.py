@@ -133,7 +133,8 @@ class FrameGetKey(FrameTab):
         self.getting_psk = False
         self.set_code_text("")
         self.progress_bar.start()
-        self.progress_bar.grid_remove()
+        if not self.wpa_supplicant or not self.wpa_supplicant.get_status():
+            self.progress_bar.grid_remove()
         self.dropdown_wii_u["values"] = InterfaceUtil.get_wiiu_compatible_interfaces()
 
     def deactivate(self):
@@ -142,6 +143,7 @@ class FrameGetKey(FrameTab):
         self.getting_psk = False
         if self.wpa_supplicant:
             self.wpa_supplicant.stop()
+            self.wpa_supplicant = None
 
     @staticmethod
     def get_image(location, width, height):
@@ -157,3 +159,6 @@ class FrameGetKey(FrameTab):
         self.entry_pair_code.delete(0, END)
         self.entry_pair_code.insert(0, text)
         self.entry_pair_code.config(state="readonly")
+
+    def kill_other_tabs(self):
+        return True
