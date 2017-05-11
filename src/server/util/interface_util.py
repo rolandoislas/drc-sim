@@ -75,18 +75,38 @@ class InterfaceUtil:
         conf = open(constants.PATH_CONF_NETWORK_MANAGER)
         conf_data = conf.readlines()
         conf.close()
+        managed = False
         for line in conf_data:
-            if line.startswith("unmanaged") and "mac:" + cls.get_mac(interface) in line:
-                Logger.debug("Interface \"%s\" is unmanaged by network manager.", interface)
-                return False
-        return True
+            if line.startswith("unmanaged-devices=") and "mac:" + cls.get_mac(interface) not in line:
+                managed = True  # Ensure configs with duplicates raise an unmanaged prompt
+        Logger.debug("Interface \"%s\" managed by network manager: %s", interface, managed)
+        return managed
 
     @classmethod
     def set_unmanaged_by_network_manager(cls, interface):
         Logger.debug("Adding interface \"%s-%s\" as an unmanaged interface to network manager", interface,
                      cls.get_mac(interface))
-        conf = open(constants.PATH_CONF_NETWORK_MANAGER, "a")
-        conf.writelines(["[keyfile]\n", "unmanaged-devices=mac:" + cls.get_mac(interface) + "\n"])
-        conf.close()
+        with open(constants.PATH_CONF_NETWORK_MANAGER, "r") as conf_read:
+            conf = conf_read.read().splitlines()
+        added = False
+        entry = "mac:" + cls.get_mac(interface)
+        # Add Entry
+        for line in range(0, len(conf)):
+            # Add keyfile plugin if it's not enabled
+            if conf[line].startswith("plugins=") and "keyfile" not in conf[line]:
+                conf[line] += ",keyfile"
+            # Add unmanaged device
+            if conf[line].startswith("unmanaged-devices=") and entry not in conf[line]:
+                conf[line] += ";" + entry
+                added = True
+        # Add the initial unmanaged entry if it was not present
+        if not added:
+            conf.append("[keyfile]")
+            conf.append("unmanaged-devices=" + entry)
+        # Write
+        with open(constants.PATH_CONF_NETWORK_MANAGER, "w") as conf_write:
+            for line in conf:
+                conf_write.write(line + "\n")
+        # Restart the service
         ProcessUtil.call(["service", "network-manager", "restart"])
         ProcessUtil.call(["service", "networking", "restart"])

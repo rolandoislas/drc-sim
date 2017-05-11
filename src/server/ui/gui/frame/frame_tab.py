@@ -10,3 +10,6 @@ class FrameTab(Frame):
 
     def deactivate(self):
         raise NotImplementedError()
+
+    def kill_other_tabs(self):
+        raise NotImplementedError()

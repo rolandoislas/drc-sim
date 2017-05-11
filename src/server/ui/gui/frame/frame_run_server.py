@@ -168,8 +168,10 @@ class FrameRunServer(FrameTab):
             return
         if self.gamepad:
             self.gamepad.close()
+            self.gamepad = None
         if self.wpa_supplicant:
             self.wpa_supplicant.stop()
+            self.wpa_supplicant = None
         self.activate()
 
     def activate(self):
@@ -181,8 +183,10 @@ class FrameRunServer(FrameTab):
         self.dropdown_wiiu_interface["values"] = InterfaceUtil.get_wiiu_compatible_interfaces()
         self.dropdown_normal_interface["values"] = InterfaceUtil.get_all_interfaces()
         self.dropdown_region["values"] = ["NONE", "NA"]
-        self.label_wpa_status["text"] = WpaSupplicant.DISCONNECTED
-        self.label_backend_status["text"] = Gamepad.STOPPED
+        self.label_wpa_status["text"] = self.wpa_supplicant.get_status() \
+            if self.wpa_supplicant and self.wpa_supplicant.get_status() else WpaSupplicant.DISCONNECTED
+        self.label_backend_status["text"] = self.gamepad.get_status() \
+            if self.gamepad and self.gamepad.get_status() else Gamepad.STOPPED
         self.button_start.config(state="normal")
         self.button_stop.config(state="normal")
         self.label_interface_info.config(text="")
@@ -194,3 +198,6 @@ class FrameRunServer(FrameTab):
         """
         LoggerGui.debug("FrameRunServer deactivated")
         self.stop_server()
+
+    def kill_other_tabs(self):
+        return True

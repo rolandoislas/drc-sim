@@ -2,7 +2,9 @@ import tkinter
 from tkinter.ttk import Notebook
 
 from src.server.data.resource import Resource
+from src.server.ui.gui.frame.frame_about import FrameAbout
 from src.server.ui.gui.frame.frame_get_key import FrameGetKey
+from src.server.ui.gui.frame.frame_log import FrameLog
 from src.server.ui.gui.frame.frame_run_server import FrameRunServer
 from src.server.util.logging.logger_gui import LoggerGui
 
@@ -33,6 +35,12 @@ class GuiMain:
         # Get Key Frame
         self.frame_get_key = FrameGetKey(self.notebook)
         self.notebook.add(self.frame_get_key, text="Get Key")
+        # Log Frame
+        self.frame_log = FrameLog(self.notebook)
+        self.notebook.add(self.frame_log, text="Log")
+        # About Frame
+        self.frame_about = FrameAbout(self.notebook)
+        self.notebook.add(self.frame_about, text="About")
 
     @staticmethod
     def throw(*args):
@@ -96,7 +104,9 @@ class GuiMain:
         tab_index = self.notebook.index(tab_id)
         tab_name = self.notebook.tab(tab_index, "text")
         LoggerGui.debug("Notebook tab changed to \"%s\" with id %d", tab_name, tab_index)
-        if self.tab_id:
-            self.notebook.children[self.tab_id].deactivate()
-        self.tab_id = tab_id.split(".")[len(tab_id.split(".")) - 1]
+        self.tab_id = tab_id.split(".")[len(tab_id.split(".")) - 1]  # Parse notebook/tab id to only tab id
+        if self.notebook.children[self.tab_id].kill_other_tabs():
+            for tab in self.notebook.children:
+                if tab != self.tab_id:
+                    self.notebook.children[tab].deactivate()
         self.notebook.children[self.tab_id].activate()
