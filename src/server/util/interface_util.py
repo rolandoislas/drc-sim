@@ -79,6 +79,8 @@ class InterfaceUtil:
         for line in conf_data:
             if line.startswith("unmanaged-devices=") and "mac:" + cls.get_mac(interface) not in line:
                 managed = True  # Ensure configs with duplicates raise an unmanaged prompt
+        if "unmanaged-devices=" not in " ".join(conf_data):
+            managed = True
         Logger.debug("Interface \"%s\" managed by network manager: %s", interface, managed)
         return managed
 
