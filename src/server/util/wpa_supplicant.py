@@ -256,6 +256,9 @@ class WpaSupplicant(StatusSendingThread):
                     self.psk_thread_cli.expect("<3>WPS-CRED-RECEIVED", timeout=60)
                     # save conf
                     LoggerWpa.debug("PSK obtained")
+                    # Save to temp config before reading from it
+                    self.psk_thread_cli.sendline("save_config")
+                    self.psk_thread_cli.expect("OK", timeout=5)
                     self.save_connect_conf(bssid)
                     self.set_status(self.DISCONNECTED)
                     return

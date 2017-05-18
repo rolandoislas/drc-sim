@@ -28,6 +28,8 @@ class AudioHandler(ServiceBase):
         pass
 
     def update(self, packet):
+        if not ConfigServer.stream_audio:
+            return
         LoggerBackend.verbose("Received audio packet")
         h = audio.header.parse(packet)
 
