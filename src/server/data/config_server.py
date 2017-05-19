@@ -8,6 +8,7 @@ class ConfigServer:
     input_delay = None
     quality = None
     fps = None
+    stream_video = None
 
     def __init__(self):
         pass
@@ -25,6 +26,7 @@ class ConfigServer:
                                                                          "5/10/15 low - 75 lan - 100 loopback")
         cls.fps = cls.config.get_int("VIDEO", "fps", 1, 60, 30, "FPS of video stream. No limit if set to 60\n"
                                                                 "10 low - 30 lan - 60 loopback")
+        cls.stream_video = cls.config.get_boolean("VIDEO", "stream", True, "Stream video to clients")
         # General
         cls.scan_timeout = cls.config.get_int("GENERAL", "scan_timeout", 0, 60 * 5, 60 * 2, "Sets the time they server "
                                                                                             "is allowed to scan for the"

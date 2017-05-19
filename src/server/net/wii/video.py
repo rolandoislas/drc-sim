@@ -81,6 +81,8 @@ class VideoHandler(ServiceBase):
         return nals
 
     def update(self, packet, test=False):
+        if not ConfigServer.stream_video:
+            return
         LoggerBackend.verbose("Received video packet")
         h = video.header.parse(packet)
         is_idr = self.packet_is_idr(packet)
