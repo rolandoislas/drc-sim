@@ -33,6 +33,7 @@ class Gamepad(StatusSendingThread):
         self.server = Server()
 
     def start(self):
+        return
         """
         Start the main thread
         :return: None
