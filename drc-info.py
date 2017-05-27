@@ -34,9 +34,9 @@ def print_packet_cmd(sock):
     header = command.header.parse(data)
     if header.packet_type != 2:  # Only accept response packets
         return
-    size = 8
+    size = 8  # header size
     if header.cmd_id == 1:
-        data_string = codecs.encode(data[size + command.header_cmd1.sizeof():], "hex").decode()
+        data_string = codecs.encode(data[size:], "hex").decode()
         print("cmd 1: %s" % data_string)
         json_dump["1"] = data_string
     elif header.cmd_id == 0:
