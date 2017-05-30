@@ -2,14 +2,12 @@ import os
 from tkinter import messagebox
 from tkinter.ttk import Label, Button, Combobox
 
-from src.server.control.gamepad import Gamepad
-from src.server.net import socket_handlers, sockets
-from src.server.net.wii.command import CommandHandler
-from src.server.util.wpa_supplicant import WpaSupplicant
 from src.server.data import constants
 from src.server.ui.gui.frame.frame_tab import FrameTab
+from src.server.util.drc_sim_c import DrcSimC
 from src.server.util.interface_util import InterfaceUtil
 from src.server.util.logging.logger_gui import LoggerGui
+from src.server.util.wpa_supplicant import WpaSupplicant
 
 
 class FrameRunServer(FrameTab):
@@ -22,7 +20,7 @@ class FrameRunServer(FrameTab):
         FrameTab.__init__(self, master, **kw)
         self.wii_u_interface = None
         self.normal_interface = None
-        self.gamepad = None
+        self.drc_sim_c = None
         self.wpa_supplicant = None
         LoggerGui.extra("Initializing FrameRunServer")
         # Create Widgets
@@ -67,7 +65,7 @@ class FrameRunServer(FrameTab):
         if event:
             LoggerGui.debug("User clicked start server button")
         LoggerGui.debug("Start server called")
-        if self.label_backend_status["text"] != Gamepad.STOPPED and \
+        if self.label_backend_status["text"] != DrcSimC.STOPPED and \
                 (self.label_wpa_status["text"] not in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED)):
             messagebox.showerror("Running", "Server is already running")
             return
@@ -124,11 +122,10 @@ class FrameRunServer(FrameTab):
             InterfaceUtil.set_metric(self.normal_interface, 0)
             InterfaceUtil.set_metric(self.wii_u_interface, 1)
             LoggerGui.debug("Starting backend")
-            self.gamepad = Gamepad()
-            self.gamepad.add_status_change_listener(self.backend_status_changed)
-            self.gamepad.start()
-            CommandHandler.set_region(socket_handlers.SocketHandlers.wii_handlers[sockets.Sockets.WII_CMD_S],
-                                      self.dropdown_region.get())
+            self.drc_sim_c = DrcSimC()
+            self.drc_sim_c.add_status_change_listener(self.backend_status_changed)
+            self.drc_sim_c.set_region(self.dropdown_region.get())
+            self.drc_sim_c.start()
             self.label_interface_info.config(text="Server IP: " + InterfaceUtil.get_ip(self.normal_interface)
                                                   + "\n" + os.uname()[1])
         elif status in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED):
@@ -150,7 +147,7 @@ class FrameRunServer(FrameTab):
         """
         LoggerGui.debug("Backend status changed to %s", status)
         self.label_backend_status.config(text=status)
-        if status in (Gamepad.NO_PACKETS, Gamepad.CRASHED):
+        if status == DrcSimC.STOPPED:
             self.stop_server()
 
     def stop_server(self, event=None):
@@ -163,12 +160,12 @@ class FrameRunServer(FrameTab):
             LoggerGui.debug("User clicked stop server button")
         LoggerGui.debug("Stop server called")
         if event and (self.label_wpa_status["text"] in (WpaSupplicant.DISCONNECTED, WpaSupplicant.TERMINATED)
-                      and self.label_backend_status["text"] == Gamepad.STOPPED):
+                      and self.label_backend_status["text"] == DrcSimC.STOPPED):
             messagebox.showerror("Stop", "Server is not running.")
             return
-        if self.gamepad:
-            self.gamepad.close()
-            self.gamepad = None
+        if self.drc_sim_c:
+            self.drc_sim_c.stop()
+            self.drc_sim_c = None
         if self.wpa_supplicant:
             self.wpa_supplicant.stop()
             self.wpa_supplicant = None
@@ -185,8 +182,8 @@ class FrameRunServer(FrameTab):
         self.dropdown_region["values"] = ["NONE", "NA"]
         self.label_wpa_status["text"] = self.wpa_supplicant.get_status() \
             if self.wpa_supplicant and self.wpa_supplicant.get_status() else WpaSupplicant.DISCONNECTED
-        self.label_backend_status["text"] = self.gamepad.get_status() \
-            if self.gamepad and self.gamepad.get_status() else Gamepad.STOPPED
+        self.label_backend_status["text"] = self.drc_sim_c.get_status() \
+            if self.drc_sim_c and self.drc_sim_c.get_status() else DrcSimC.STOPPED
         self.button_start.config(state="normal")
         self.button_stop.config(state="normal")
         self.label_interface_info.config(text="")

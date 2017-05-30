@@ -1,10 +1,10 @@
 import os
 import time
 
-from src.server.control.gamepad import Gamepad
 from src.server.data import constants
 from src.server.data.args import Args
 from src.server.data.resource import Resource
+from src.server.util.drc_sim_c import DrcSimC
 from src.server.util.interface_util import InterfaceUtil
 from src.server.util.logging.logger_cli import LoggerCli
 from src.server.util.process_util import ProcessUtil
@@ -14,7 +14,7 @@ from src.server.util.wpa_supplicant import WpaSupplicant
 class CliMain:
     def __init__(self):
         self.getting_key = False
-        self.gamepad = None
+        self.drc_sim_c = None
         self.wpa_supplicant = None
 
     def start(self):
@@ -31,8 +31,8 @@ class CliMain:
         LoggerCli.info("Stopping")
         ProcessUtil.call(["killall", "dhclient"])
         self.getting_key = False
-        if self.gamepad and self.gamepad.running:
-            self.gamepad.close()
+        if self.drc_sim_c:
+            self.drc_sim_c.stop()
         if self.wpa_supplicant:
             self.wpa_supplicant.stop()
 
@@ -48,10 +48,16 @@ class CliMain:
         InterfaceUtil.dhclient(wii_u_interface)
         InterfaceUtil.set_metric(normal_interface, 0)
         InterfaceUtil.set_metric(wii_u_interface, 1)
-        self.gamepad = Gamepad()
-        self.gamepad.start()
-        while self.gamepad.running:
+        self.drc_sim_c = DrcSimC()
+        self.drc_sim_c.set_region("none")  # TODO get add region to args
+        self.drc_sim_c.add_status_change_listener(self.drc_sim_c_status_changed)
+        self.drc_sim_c.start()
+        while self.drc_sim_c.running:
             time.sleep(1)
+
+    def drc_sim_c_status_changed(self, status):
+        if status == DrcSimC.STOPPED:
+            self.stop()
 
     @staticmethod
     def check_interfaces(normal_interface, wii_u_interface):
