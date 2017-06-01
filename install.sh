@@ -6,6 +6,7 @@
 
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
 REPO_WPA_SUPPLICANT_DRC="https://github.com/rolandoislas/drc-hostap.git"
+REPO_DRC_SIM_C="https://github.com/rolandoislas/drc-sim-c.git"
 INSTALL_DIR="/opt/drc_sim/"
 PATH_APPLICATION_LAUNCHER="/usr/share/applications/drc-sim-backend.desktop"
 PATH_ICON="/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png"
@@ -19,11 +20,13 @@ check_os() {
     if command -v apt-get &> /dev/null; then
         echo "Command apt-get found."
         # Backend dependencies
-        dependencies=("python3" "python3-dev" "python3-pip" "libffi-dev" "zlib1g-dev" "libjpeg-dev"
-        "net-tools" "wireless-tools" "sysvinit-utils" "psmisc" "libavcodec-dev" "libswscale-dev" "rfkill"
+        dependencies=("python3" "python3-pip"
+        "net-tools" "wireless-tools" "sysvinit-utils" "psmisc" "rfkill"
         "isc-dhcp-client" "ifmetric" "python3-tk" "gksu")
         # Wpa supplicant compile dependencies
         dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make")
+        # DRC Sim Server C++
+        dependencies+=("libavcodec-dev" "libswscale-dev" "libjpeg-dev" "cmake")
     else
         echo "The command apt-get was not found. This OS is not supported."
         exit 1
@@ -108,18 +111,13 @@ get_git() {
 
 # Compiles wpa_supplicant after fetching it from git
 compile_wpa() {
-    if command -v wpa_supplicant_drc &> /dev/null && command -v wpa_cli_drc &> /dev/null; then
-        echo "Skipping wpa_supplicant compile"
-        return 0
-    fi
     get_git ${REPO_WPA_SUPPLICANT_DRC} "wpa"
-    echo "drc-hostap"
     echo "Compiling wpa_supplicant_drc"
-    wpa_dir="${INSTALL_DIR}wpa/wpa_supplicant/"
+    compile_dir="${INSTALL_DIR}wpa/wpa_supplicant/"
     cur_dir="${PWD}"
-    cd "${wpa_dir}" &> /dev/null || return 1
+    cd "${compile_dir}" &> /dev/null || return 1
     cp ../conf/wpa_supplicant.config ./.config &> /dev/null || return 1
-    compile_log="${wpa_dir}make.log"
+    compile_log="${compile_dir}make.log"
     echo "Compile log at ${compile_log}"
     make &> ${compile_log} || return 1
     echo "Installing wpa_supplicant_drc and wpa_cli_drc to /usr/local/bin"
@@ -129,8 +127,26 @@ compile_wpa() {
     return 0
 }
 
+# Compiles drc_sim_c after fetching it from git
+compile_drc_sim_c() {
+    get_git ${REPO_DRC_SIM_C} "drc_sim_c"
+    echo "Compiling drc_sim_c"
+    compile_dir="${INSTALL_DIR}drc_sim_c/"
+    cur_dir="${PWD}"
+    cd "${compile_dir}" &> /dev/null || return 1
+    compile_log="${compile_dir}make.log"
+    echo "Compile log at ${compile_log}"
+    cmake "$compile_dir" &> /dev/null || return 1
+    make &> ${compile_log} || return 1
+    echo "Installing drc_sim_c to /usr/local/bin"
+    make install &> /dev/null || return 1
+    cd "${cur_dir}" &> /dev/null || return 1
+    return 0
+}
+
 # Installs drc-sim in a virtualenv
 install_drc_sim() {
+    echo "Installing DRC Sim Server GUI/CLI Utility"
     # Paths
     drc_dir="${INSTALL_DIR}drc/"
     cur_dir="${PWD}"
@@ -158,8 +174,9 @@ install_drc_sim() {
     echo "Activating virtualenv"
     source "${venv_dir}bin/activate" || return 1
     # Remove an existing install of drc-sim
-    #echo "Attempting to remove previous installations"
-    #pip uninstall drc-sim &> /dev/null || return 1
+    echo "Attempting to remove previous installations"
+    pip uninstall -y drcsim &> /dev/null || \
+        echo "Failed to remove the previous installation. Attempting to install anyway."
     # Set the directory
     cd "${drc_dir}" &> /dev/null || return 1
     # Branch to checkout
@@ -268,6 +285,7 @@ post_install() {
 install() {
     install_dependencies
     pass_fail compile_wpa "Compiled wpa_supplicant" "Failed to compile wpa_supplicant"
+    pass_fail compile_drc_sim_c "Compiled drc_sim_c" "Failed to compile drc_sim_c"
     pass_fail install_drc_sim "Created virtualenv for drc-sim" "Failed to create virtualenv for drc-sim"
     pass_fail install_launch_script "Launch script installed." "Failed to install launch script"
     pass_fail install_desktop_launcher "Installed application launcher" "Failed to install desktop application launcher"

@@ -17,7 +17,7 @@ class FrameLog(FrameTab):
     # noinspection PyUnusedLocal
     def button_clicked(self, event):
         tail = ["x-terminal-emulator", "-e", "tail", "-f"]
-        for file in ("drcsim", "cli", "gui", "wpa", "backend"):
+        for file in ("drcsim", "cli", "gui", "wpa", "backend", "drc_sim_c"):
             tail.append(os.path.join(constants.PATH_LOG_DIR, file + ".log"))
         self.deactivate()
         try:
@@ -29,8 +29,7 @@ class FrameLog(FrameTab):
         pass
 
     def deactivate(self):
-        if self.log and self.log.poll() is None:
-            self.log.kill()
+        pass
 
     def kill_other_tabs(self):
         return False
