@@ -29,8 +29,7 @@ class FrameLog(FrameTab):
         pass
 
     def deactivate(self):
-        if self.log and self.log.poll() is None:
-            self.log.kill()
+        pass
 
     def kill_other_tabs(self):
         return False

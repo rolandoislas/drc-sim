@@ -26,6 +26,9 @@ class Args:
                                 help="verbose debug output")
         arg_parser.add_argument("-c", "--cli", action="store_const", const=True, default=False,
                                 help="disable gui")
+        # Disable server
+        arg_parser.add_argument("--disable-server", "--disable_server", action="store_const", const=True, default=False,
+                                help="dev: disable packet handling and serving")
         # CLI
         args = ["-c", "--cli", "-h", "--help"]
         found = False
@@ -38,6 +41,7 @@ class Args:
             run_server = subparsers.add_parser("run_server")
             run_server.add_argument("wii_u_interface", type=str)
             run_server.add_argument("normal_interface", type=str)
+            run_server.add_argument("-region", type=str, default="none")
             # Get Key
             get_key = subparsers.add_parser("get_key")
             get_key.add_argument("wii_u_interface", type=str)

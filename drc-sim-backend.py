@@ -1,6 +1,6 @@
 from src.server.data import constants
 from src.server.data.args import Args
-from src.server.data.config_server import ConfigServer
+from src.server.data.config_general import ConfigGeneral
 from src.server.ui.cli.cli_main import CliMain
 from src.server.util.logging.logger import Logger
 from src.server.util.logging.logger_backend import LoggerBackend
@@ -74,8 +74,8 @@ def main():
     :return: None
     """
     Args.parse_args()
-    ConfigServer.load()
-    ConfigServer.save()
+    ConfigGeneral.load()
+    ConfigGeneral.save()
     init_loggers()
     Logger.info("Initializing drc-sim-backend version %s", constants.VERSION)
     Logger.info("Using \"%s\" as home folder.", constants.PATH_ROOT)

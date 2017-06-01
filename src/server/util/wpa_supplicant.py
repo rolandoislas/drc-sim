@@ -6,7 +6,7 @@ from threading import Thread
 import pexpect
 
 from src.server.data import constants
-from src.server.data.config_server import ConfigServer
+from src.server.data.config_general import ConfigGeneral
 from src.server.util.logging.logger_wpa import LoggerWpa
 from src.server.util.process_util import ProcessUtil
 from src.server.util.status_sending_thread import StatusSendingThread
@@ -94,20 +94,25 @@ class WpaSupplicant(StatusSendingThread):
                     self.time_start += 1
             # scanning
             elif not self.scan_contains_wii_u(scan_results) or "wpa_state=SCANNING" in wpa_status:
-                LoggerWpa.finer("%d seconds until scan timeout", ConfigServer.scan_timeout - self.time_scan)
+                LoggerWpa.finer("%d seconds until scan timeout", ConfigGeneral.scan_timeout - self.time_scan)
+                # disconnect
+                if self.time_scan == -1:
+                    status = self.DISCONNECTED
                 # timeout scan
-                if self.time_scan >= ConfigServer.scan_timeout:
+                elif self.time_scan >= ConfigGeneral.scan_timeout:
                     status = self.NOT_FOUND
                 else:
                     status = self.SCANNING
                     self.time_scan += 1
             elif "wpa_state=COMPLETED" in wpa_status:
                 status = self.CONNECTED
-                self.time_scan = 0  # forces a disconnect - might need to be handled better
+                self.time_scan = -1  # forces a disconnect - might need to be handled better
             elif "wpa_state=AUTHENTICATING" in wpa_status or "wpa_state=ASSOCIATING" in wpa_status:
                 status = self.CONNECTING
             elif "wpa_state=DISCONNECTED" in wpa_status:
                 status = self.DISCONNECTED
+                if self.time_scan != -1:
+                    status = self.FAILED_START
             else:
                 LoggerWpa.extra("WPA status: %s", wpa_status)
                 status = self.UNKNOWN
@@ -150,12 +155,6 @@ class WpaSupplicant(StatusSendingThread):
             LoggerWpa.debug("Ignored stop request: already stopped")
             return
         self.running = False
-        if self.status_check_thread:
-            LoggerWpa.debug("Stopping wpa status check")
-            try:
-                self.status_check_thread.join()
-            except RuntimeError as e:
-                LoggerWpa.exception(e)
         if self.psk_thread_cli and self.psk_thread_cli.isalive():
             LoggerWpa.debug("Stopping psk pexpect spawn")
             self.psk_thread_cli.sendline("quit")
