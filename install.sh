@@ -101,6 +101,7 @@ get_git() {
     fi
     # Clone
     echo "Cloning ${1} into ${git_dir}"
+    cd ~
     if command git clone ${1} ${git_dir} &> /dev/null; then
         echo "Cloned ${1}"
     else
@@ -167,6 +168,7 @@ install_drc_sim() {
     # Install virtualenv
     echo "Installing virtualenv"
     python3 -m pip install virtualenv &> /dev/null || return 1
+    python3 -m pip install setuptools &> /dev/null || return 1
     # Create venv
     echo "Creating virtualenv"
     python3 -m virtualenv -p python3 "${venv_dir}" &> /dev/null || return 1
@@ -189,7 +191,7 @@ install_drc_sim() {
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    python3 setup.py install &> /dev/null || return 1
+    python3 -m pip install ./ &> /dev/null || return 1
     cd "${cur_dir}" &> /dev/null || return 1
 }
 
