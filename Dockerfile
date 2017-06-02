@@ -1,6 +1,6 @@
 FROM debian:jessie
 
-ADD drc*.py /root/
+ADD drc-sim-backend /root/
 ADD setup.py /root/
 ADD src/ /root/src/
 ADD resources/ /root/resources/

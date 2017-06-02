@@ -13,6 +13,9 @@
 #    Add version number
 #    Add pkg-info - wpa_supplicant compile fails without it
 #    Remove virtualenv
+# June 1, 2017 - 1.1.1
+#    Fix Make, cmake, and setup.py not returning on errors
+#    Fix current directory not being restored on a git update failure
 
 VERSION="1.1"
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
@@ -84,9 +87,11 @@ update_git() {
             if command git pull &> /dev/null; then
                 echo "Updated git repo"
             else
+                cd "${cur_dir}" &> /dev/null || return 1
                 return 1
             fi
         else
+            cd "${cur_dir}" &> /dev/null || return 1
             return 1
         fi
     fi
@@ -109,7 +114,6 @@ get_git() {
     fi
     # Clone
     echo "Cloning ${1} into ${git_dir}"
-    cd ~
     if command git clone ${1} ${git_dir} &> /dev/null; then
         echo "Cloned ${1}"
     else
@@ -128,7 +132,7 @@ compile_wpa() {
     cp ../conf/wpa_supplicant.config ./.config &> /dev/null || return 1
     compile_log="${compile_dir}make.log"
     echo "Compile log at ${compile_log}"
-    make &> ${compile_log} || (cat "${compile_log}"; return 1)
+    if ! make &> ${compile_log}; then cat "${compile_log}"; return 1; fi
     echo "Installing wpa_supplicant_drc and wpa_cli_drc to /usr/local/bin"
     cp wpa_supplicant /usr/local/bin/wpa_supplicant_drc &> /dev/null || return 1
     cp wpa_cli /usr/local/bin/wpa_cli_drc &> /dev/null || return 1
@@ -146,8 +150,8 @@ compile_drc_sim_c() {
     compile_log="${compile_dir}make.log"
     cmake_log="${compile_dir}cmake.log"
     echo "Compile log at ${compile_log}"
-    cmake "$compile_dir" &> ${cmake_log} || (cat "${cmake_log}"; return 1)
-    make &> ${compile_log} || (cat "${compile_log}"; return 1)
+    if ! cmake "${compile_dir}" &> "${cmake_log}"; then cat "${cmake_log}"; return 1; fi
+    if ! make &> "${compile_log}"; then cat "${compile_log}"; return 1; fi
     echo "Installing drc_sim_c to /usr/local/bin"
     make install &> /dev/null || return 1
     cd "${cur_dir}" &> /dev/null || return 1
@@ -166,12 +170,16 @@ install_drc_sim() {
         get_git ${REPO_DRC_SIM} "drc"
     else
         # Copy local
+        if [[ ! -f "${cur_dir}/setup.py" ]]; then
+            echo "Cannot perform local install. Missing source files at ${cur_dir}."
+            return 1
+        fi
         if [[ ! -d "${INSTALL_DIR}" ]]; then
             mkdir "${INSTALL_DIR}" &> /dev/null || return 1
         fi
         rm -rf ${drc_dir} &> /dev/null || return 1
         mkdir ${drc_dir} &> /dev/null || return 1
-        cp -R "${PWD}/." "${drc_dir%/*}" &> /dev/null || return 1
+        cp -R "${cur_dir}/." "${drc_dir%/*}" &> /dev/null || return 1
     fi
     # Install python dependencies
     echo "Installing setuptools"
@@ -192,8 +200,10 @@ install_drc_sim() {
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    python3 ./setup.py install --record "${drc_dir}/install.txt" &> "/tmp/drc-sim-py-install.log" || \
-        (cat "/tmp/drc-sim-py-install.log"; return 1)
+    if ! python3 "${drc_dir}setup.py" install --record "${drc_dir}/install.txt" &> "/tmp/drc-sim-py-install.log"; then
+        cat "/tmp/drc-sim-py-install.log"
+        return 1
+    fi
     cd "${cur_dir}" &> /dev/null || return 1
     # Update icon cache
     update-icon-caches /usr/share/icons/* &> /dev/null || echo "Failed to update icon cache."
