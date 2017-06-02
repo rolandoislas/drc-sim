@@ -3,14 +3,22 @@
 #
 # drc-sim-backend install script
 # https://github.com/rolandoislas/drc-sim
+#
+# Changelog
+#
+# June 1, 2017 - 1.1
+#    Add output on error for make, cmake, and setup.py
+#    Add setup.py outputs to install.txt during install and it is read from for an uninstall
+#    Move init script, desktop launcher, and icon to setup.py
+#    Add version number
+#    Add pkg-info - wpa_supplicant compile fails without it
+#    Remove virtualenv
 
+VERSION="1.1"
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
 REPO_WPA_SUPPLICANT_DRC="https://github.com/rolandoislas/drc-hostap.git"
 REPO_DRC_SIM_C="https://github.com/rolandoislas/drc-sim-c.git"
 INSTALL_DIR="/opt/drc_sim/"
-PATH_APPLICATION_LAUNCHER="/usr/share/applications/drc-sim-backend.desktop"
-PATH_ICON="/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png"
-PATH_INIT_SCRIPT="/usr/local/bin/drc-sim-backend"
 dependencies=()
 branch_drc_sim=""
 
@@ -24,7 +32,7 @@ check_os() {
         "net-tools" "wireless-tools" "sysvinit-utils" "psmisc" "rfkill"
         "isc-dhcp-client" "ifmetric" "python3-tk" "gksu")
         # Wpa supplicant compile dependencies
-        dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make")
+        dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make" "pkg-config")
         # DRC Sim Server C++
         dependencies+=("libavcodec-dev" "libswscale-dev" "libjpeg-dev" "cmake")
     else
@@ -120,7 +128,7 @@ compile_wpa() {
     cp ../conf/wpa_supplicant.config ./.config &> /dev/null || return 1
     compile_log="${compile_dir}make.log"
     echo "Compile log at ${compile_log}"
-    make &> ${compile_log} || return 1
+    make &> ${compile_log} || (cat "${compile_log}"; return 1)
     echo "Installing wpa_supplicant_drc and wpa_cli_drc to /usr/local/bin"
     cp wpa_supplicant /usr/local/bin/wpa_supplicant_drc &> /dev/null || return 1
     cp wpa_cli /usr/local/bin/wpa_cli_drc &> /dev/null || return 1
@@ -136,9 +144,10 @@ compile_drc_sim_c() {
     cur_dir="${PWD}"
     cd "${compile_dir}" &> /dev/null || return 1
     compile_log="${compile_dir}make.log"
+    cmake_log="${compile_dir}cmake.log"
     echo "Compile log at ${compile_log}"
-    cmake "$compile_dir" &> /dev/null || return 1
-    make &> ${compile_log} || return 1
+    cmake "$compile_dir" &> ${cmake_log} || (cat "${cmake_log}"; return 1)
+    make &> ${compile_log} || (cat "${compile_log}"; return 1)
     echo "Installing drc_sim_c to /usr/local/bin"
     make install &> /dev/null || return 1
     cd "${cur_dir}" &> /dev/null || return 1
@@ -151,7 +160,6 @@ install_drc_sim() {
     # Paths
     drc_dir="${INSTALL_DIR}drc/"
     cur_dir="${PWD}"
-    venv_dir="${INSTALL_DIR}venv_drc/"
     # Get source
     if [[ "${branch_drc_sim}" != "local" ]]; then
         # Get repo
@@ -165,19 +173,12 @@ install_drc_sim() {
         mkdir ${drc_dir} &> /dev/null || return 1
         cp -R "${PWD}/." "${drc_dir%/*}" &> /dev/null || return 1
     fi
-    # Install virtualenv
-    echo "Installing virtualenv"
-    python3 -m pip install virtualenv &> /dev/null || return 1
+    # Install python dependencies
+    echo "Installing setuptools"
     python3 -m pip install setuptools &> /dev/null || return 1
-    # Create venv
-    echo "Creating virtualenv"
-    python3 -m virtualenv -p python3 "${venv_dir}" &> /dev/null || return 1
-    # Activate venv
-    echo "Activating virtualenv"
-    source "${venv_dir}bin/activate" || return 1
     # Remove an existing install of drc-sim
     echo "Attempting to remove previous installations"
-    pip uninstall -y drcsim &> /dev/null || \
+    python3 -m pip uninstall -y drcsim &> /dev/null || \
         echo "Failed to remove the previous installation. Attempting to install anyway."
     # Set the directory
     cd "${drc_dir}" &> /dev/null || return 1
@@ -191,52 +192,56 @@ install_drc_sim() {
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    python3 -m pip install ./ &> /dev/null || return 1
+    python3 ./setup.py install --record "${drc_dir}/install.txt" &> "/tmp/drc-sim-py-install.log" || \
+        (cat "/tmp/drc-sim-py-install.log"; return 1)
     cd "${cur_dir}" &> /dev/null || return 1
-}
-
-# Install the shell script that activates the venv and launches drc-sim with gksu
-install_launch_script() {
-    echo "Installing launch script"
-    launch_script="${INSTALL_DIR}drc/resources/bin/drc-sim-backend.sh"
-    echo "Copying launch script from ${launch_script}"
-    cp ${launch_script} "${PATH_INIT_SCRIPT}" &> /dev/null || return 1
-    echo "Setting launch script executable"
-    chmod +x /usr/local/bin/drc-sim-backend &> /dev/null || return 1
-}
-
-# Install the desktop launcher
-install_desktop_launcher() {
-    echo "Installing desktop launcher"
-    launcher="${INSTALL_DIR}drc/resources/bin/drc-sim-backend.desktop"
-    cp ${launcher} /usr/share/applications/ &> /dev/null || return 1
-    chmod +x "${PATH_APPLICATION_LAUNCHER}" &> /dev/null || return 1
-    echo "Installing icon"
-    icon="${INSTALL_DIR}drc/resources/image/icon.png"
-    cp ${icon} "${PATH_ICON}" &> /dev/null || echo "Failed to install icon"
+    # Update icon cache
     update-icon-caches /usr/share/icons/* &> /dev/null || echo "Failed to update icon cache."
 }
 
 # Echos the general info
 print_info() {
-    echo "Drc-sim installer"
-    echo "  https://github.com/rolandoislas/drc-sim"
+    echo "Drc-sim installer (script version ${VERSION})"
+    printf "\thttps://github.com/rolandoislas/drc-sim\n"
 }
 
 # Uninstalls DRC Sim then exists
 uninstall() {
+    drc_install_log="${INSTALL_DIR}drc/install.txt"
     echo "Uninstalling DRC Sim Server"
+    # Remove setup.py files
+    if [[ -f "${drc_install_log}" ]]; then
+        echo "Files to remove:"
+        cat ${drc_install_log}
+        read -p "Remove these files? [Y/N]" reponse
+        if [[ ${reponse} =~ [Yy](es)* ]]; then
+            tr '\n' '\0' < ${drc_install_log} | xargs -0 sudo rm -f --
+            echo "Removed Python installed files"
+        else
+            echo "Not removing Python installed files"
+            echo "Install canceled"
+            exit 2
+        fi
+    else
+        cat ${drc_install_log}
+        echo "Could not clean Python installed files. Missing ${drc_install_log}"
+    fi
+    # Launcher (.desktop)
+    to_remove=("/usr/share/applications/drc-sim-backend.desktop" "/usr/share/applications/drcsimbackend.desktop"
+        "/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png")
+    for item in "${to_remove[@]}"; do
+        if [[ -f "${item}" ]]; then
+            echo "Removing application launcher"
+            rm -f ${item} &> /dev/null
+        fi
+    done
+    # Install dir
     echo "Removing install directory"
     rm -rf ${INSTALL_DIR} &> /dev/null || echo "Failed to remove install directory."
-    echo "Removing application launcher"
-    rm -f ${PATH_APPLICATION_LAUNCHER} &> /dev/null || echo "Failed to remove application launcher"
-    echo "Removing icon"
-    rm -f ${PATH_ICON} &> /dev/null || echo "Failed to remove application icon"
-    echo "Removing init script"
-    rm -f ${PATH_INIT_SCRIPT} &> /dev/null || echo "Failed to remove init script"
     # TODO uninstall packages
     printf "\nNOT removing package dependencies\n"
     printf "${dependencies[*]}\n\n"
+    # Done
     echo "Uninstalled DRC Sim Server"
     exit 0
 }
@@ -278,7 +283,7 @@ pass_fail() {
 # Echo post install message and exit
 post_install() {
     echo "Install finished"
-    echo "\"DRC SIM Server\" is now available in a GUI desktop applications menu if installed."
+    echo "\"DRC SIM Server\" will now appear in GUI application menus."
     echo "It can also be launched via \"drc-sim-backend\"."
     exit 0
 }
@@ -288,9 +293,7 @@ install() {
     install_dependencies
     pass_fail compile_wpa "Compiled wpa_supplicant" "Failed to compile wpa_supplicant"
     pass_fail compile_drc_sim_c "Compiled drc_sim_c" "Failed to compile drc_sim_c"
-    pass_fail install_drc_sim "Created virtualenv for drc-sim" "Failed to create virtualenv for drc-sim"
-    pass_fail install_launch_script "Launch script installed." "Failed to install launch script"
-    pass_fail install_desktop_launcher "Installed application launcher" "Failed to install desktop application launcher"
+    pass_fail install_drc_sim "Installed drc-sim" "Failed to install drc-sim"
     post_install
 }
 
