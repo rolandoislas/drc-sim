@@ -16,8 +16,10 @@
 # June 1, 2017 - 1.1.1
 #    Fix Make, cmake, and setup.py not returning on errors
 #    Fix current directory not being restored on a git update failure
+# June 2, 2017 - 1.1.2
+#    Detect and install to virtualenv
 
-VERSION="1.1"
+VERSION="1.1.2"
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
 REPO_WPA_SUPPLICANT_DRC="https://github.com/rolandoislas/drc-hostap.git"
 REPO_DRC_SIM_C="https://github.com/rolandoislas/drc-sim-c.git"
@@ -200,7 +202,13 @@ install_drc_sim() {
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    if ! python3 "${drc_dir}setup.py" install --record "${drc_dir}/install.txt" &> "/tmp/drc-sim-py-install.log"; then
+    prefix=""
+    if [ ! -z "${VIRTUAL_ENV}" ]; then
+        echo "Installing into virtualenv: ${VIRTUAL_ENV}"
+        prefix="--prefix ${VIRTUAL_ENV}"
+    fi
+    if ! python3 "${drc_dir}setup.py" install ${prefix} --record "${drc_dir}/install.txt" &> \
+        "/tmp/drc-sim-py-install.log"; then
         cat "/tmp/drc-sim-py-install.log"
         return 1
     fi
@@ -233,7 +241,6 @@ uninstall() {
             exit 2
         fi
     else
-        cat ${drc_install_log}
         echo "Could not clean Python installed files. Missing ${drc_install_log}"
     fi
     # Launcher (.desktop)
@@ -241,7 +248,6 @@ uninstall() {
         "/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png")
     for item in "${to_remove[@]}"; do
         if [[ -f "${item}" ]]; then
-            echo "Removing application launcher"
             rm -f ${item} &> /dev/null
         fi
     done

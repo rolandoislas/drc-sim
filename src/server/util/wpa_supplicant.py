@@ -199,6 +199,8 @@ class WpaSupplicant(StatusSendingThread):
           NOT_FOUND: wpa_supplicant_drc did not find any Wii U APs
           TERMINATED: wpa_supplicant_drc could not authenticate with any SSIDs
           DISCONNECTED: auth details were saved
+          SCANNING: scan has started
+          CONNECTING: attempting to authenticate with a Wii U
         :return: None
         """
         self.connect(conf_path, interface, status_check=False)
@@ -219,10 +221,19 @@ class WpaSupplicant(StatusSendingThread):
             # Scan for Wii U SSIDs
             scan_tries = 5
             wii_u_bssids = []
+            self.set_status(self.SCANNING)
             while self.running and scan_tries > 0:
                 self.psk_thread_cli.sendline("scan")
                 LoggerWpa.debug("CLI expect waiting for scan results available event")
-                self.psk_thread_cli.expect("<3>CTRL-EVENT-SCAN-RESULTS", timeout=60)
+                scan_wait_tries = 60
+                while self.running:
+                    try:
+                        self.psk_thread_cli.expect("<3>CTRL-EVENT-SCAN-RESULTS", timeout=1)
+                        break
+                    except pexpect.TIMEOUT:
+                        scan_wait_tries -= 1
+                        if scan_wait_tries <= 0:
+                            raise pexpect.TIMEOUT("Scan timeout")
                 self.psk_thread_cli.sendline("scan_results")
                 LoggerWpa.debug("CLI expect waiting for scan results")
                 self.psk_thread_cli.expect("bssid / frequency / signal level / flags / ssid")
@@ -246,13 +257,22 @@ class WpaSupplicant(StatusSendingThread):
                 self.set_status(self.NOT_FOUND)
                 return
             # attempt to pair with any wii u bssid
+            self.set_status(self.CONNECTING)
             for bssid in wii_u_bssids:
                 self.psk_thread_cli.sendline("wps_pin %s %s" % (bssid, code + "5678"))
                 LoggerWpa.debug("CLI expect waiting for wps_pin input confirmation")
                 self.psk_thread_cli.expect(code + "5678")
                 LoggerWpa.debug("CLI expect waiting for authentication")
                 try:
-                    self.psk_thread_cli.expect("<3>WPS-CRED-RECEIVED", timeout=60)
+                    connect_wait_tries = 60
+                    while self.running:
+                        try:
+                            self.psk_thread_cli.expect("<3>WPS-CRED-RECEIVED", timeout=1)
+                            break
+                        except pexpect.TIMEOUT:
+                            connect_wait_tries -= 1
+                            if connect_wait_tries <= 0:
+                                raise pexpect.TIMEOUT("Connect Timeout")
                     # save conf
                     LoggerWpa.debug("PSK obtained")
                     # Save to temp config before reading from it
@@ -270,6 +290,11 @@ class WpaSupplicant(StatusSendingThread):
             LoggerWpa.debug("PSK get attempt ended with an error.")
             LoggerWpa.exception(e)
             self.set_status(self.FAILED_START)
+        # Unexpected EOF
+        except pexpect.EOF as e:
+            if self.running:  # Thread was not killed
+                LoggerWpa.exception(e)
+            return
         # Failed to authenticate
         LoggerWpa.debug("Could not authenticate with any SSIDs")
         self.set_status(self.TERMINATED)
