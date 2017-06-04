@@ -18,8 +18,10 @@
 #    Fix current directory not being restored on a git update failure
 # June 2, 2017 - 1.1.2
 #    Detect and install to virtualenv
+# June 3, 2017 - 1.1.3
+#    Use python3 from virtualenv if found
 
-VERSION="1.1.2"
+VERSION="1.1.3"
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
 REPO_WPA_SUPPLICANT_DRC="https://github.com/rolandoislas/drc-hostap.git"
 REPO_DRC_SIM_C="https://github.com/rolandoislas/drc-sim-c.git"
@@ -166,6 +168,14 @@ install_drc_sim() {
     # Paths
     drc_dir="${INSTALL_DIR}drc/"
     cur_dir="${PWD}"
+    # Fix virtualenv paths
+    prefix=""
+    python="python3"
+    if [ ! -z "${VIRTUAL_ENV}" ]; then
+        echo "Installing into virtualenv: ${VIRTUAL_ENV}"
+        prefix="--prefix ${VIRTUAL_ENV}"
+        python="${VIRTUAL_ENV}/bin/${python}"
+    fi
     # Get source
     if [[ "${branch_drc_sim}" != "local" ]]; then
         # Get repo
@@ -185,10 +195,10 @@ install_drc_sim() {
     fi
     # Install python dependencies
     echo "Installing setuptools"
-    python3 -m pip install setuptools &> /dev/null || return 1
+    ${python} -m pip install setuptools &> /dev/null || return 1
     # Remove an existing install of drc-sim
     echo "Attempting to remove previous installations"
-    python3 -m pip uninstall -y drcsim &> /dev/null || \
+    ${python} -m pip uninstall -y drcsim &> /dev/null || \
         echo "Failed to remove the previous installation. Attempting to install anyway."
     # Set the directory
     cd "${drc_dir}" &> /dev/null || return 1
@@ -202,12 +212,7 @@ install_drc_sim() {
     # Install
     echo "Installing drc-sim"
     echo "Downloading Python packages. This may take a while."
-    prefix=""
-    if [ ! -z "${VIRTUAL_ENV}" ]; then
-        echo "Installing into virtualenv: ${VIRTUAL_ENV}"
-        prefix="--prefix ${VIRTUAL_ENV}"
-    fi
-    if ! python3 "${drc_dir}setup.py" install ${prefix} --record "${drc_dir}/install.txt" &> \
+    if ! ${python} "${drc_dir}setup.py" install ${prefix} --record "${drc_dir}/install.txt" &> \
         "/tmp/drc-sim-py-install.log"; then
         cat "/tmp/drc-sim-py-install.log"
         return 1
