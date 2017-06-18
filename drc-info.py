@@ -6,19 +6,24 @@ import sys
 import time
 from threading import Thread
 
-from src.server.data import constants
 from src.server.data.struct import input, command
 
+PORT_WII_MSG = 50010
+PORT_WII_VID = 50020
+PORT_WII_AUD = 50021
+PORT_WII_HID = 50022
+PORT_WII_CMD = 50023
+
 sock_cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock_cmd.bind(("192.168.1.10", constants.PORT_WII_CMD))
+sock_cmd.bind(("192.168.1.10", PORT_WII_CMD))
 sock_msg = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock_msg.bind(("192.168.1.10", constants.PORT_WII_MSG))
+sock_msg.bind(("192.168.1.10", PORT_WII_MSG))
 sock_hid = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock_hid.bind(("192.168.1.10", constants.PORT_WII_HID))
+sock_hid.bind(("192.168.1.10", PORT_WII_HID))
 sock_vid = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock_vid.bind(("192.168.1.10", constants.PORT_WII_VID))
+sock_vid.bind(("192.168.1.10", PORT_WII_VID))
 sock_aud = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock_aud.bind(("192.168.1.10", constants.PORT_WII_AUD))
+sock_aud.bind(("192.168.1.10", PORT_WII_AUD))
 
 json_dump = {}
 
@@ -34,9 +39,9 @@ def print_packet_cmd(sock):
     header = command.header.parse(data)
     if header.packet_type != 2:  # Only accept response packets
         return
-    size = 8
+    size = 8  # header size
     if header.cmd_id == 1:
-        data_string = codecs.encode(data[size + command.header_cmd1.sizeof():], "hex").decode()
+        data_string = codecs.encode(data[size:], "hex").decode()
         print("cmd 1: %s" % data_string)
         json_dump["1"] = data_string
     elif header.cmd_id == 0:
@@ -50,7 +55,7 @@ def print_packet_cmd(sock):
 
 
 def send_cmd(data):
-    sock_cmd.sendto(data, ("192.168.1.11", constants.PORT_WII_CMD + 100))
+    sock_cmd.sendto(data, ("192.168.1.11", PORT_WII_CMD + 100))
 
 
 def send_command_from_string(command_string, sid):

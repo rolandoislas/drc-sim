@@ -54,7 +54,7 @@ class Logger:
 
     @classmethod
     def throw(cls, exception, message=None, *args):
-        cls.logger.error(str("=" * 50 + " [ CRASH ] " + "=" * 50))
+        cls.logger.error(str("=" * 10 + " [ CRASH ] " + "=" * 10))
         OsUtil.log_info(cls.logger)
         if message:
             cls.logger.error(message, *args)
@@ -62,7 +62,7 @@ class Logger:
             cls.logger.exception(exception)
         else:
             cls.logger.error(exception)
-        cls.logger.error(str("=" * 50 + " [ CRASH ] " + "=" * 50))
+        cls.logger.error(str("=" * 10 + " [ CRASH ] " + "=" * 10))
         if cls != Logger:
             raise exception
 

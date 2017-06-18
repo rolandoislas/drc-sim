@@ -1,5 +1,5 @@
 from tkinter import PhotoImage, Button, END, messagebox
-from tkinter.ttk import Entry, Progressbar, Combobox
+from tkinter.ttk import Entry, Combobox, Label
 
 from src.server.data import constants
 from src.server.data.resource import Resource
@@ -41,8 +41,8 @@ class FrameGetKey(FrameTab):
         self.button_delete = Button(self, text="Delete")
         # Code
         self.entry_pair_code = Entry(self, state="readonly")
-        # Progress bar
-        self.progress_bar = Progressbar(self, mode="indeterminate")
+        # Status Message
+        self.status_message = Label(self, state="readonly")
         # interface dropdown
         self.dropdown_wii_u = Combobox(self, state="readonly")
         # Events
@@ -58,7 +58,7 @@ class FrameGetKey(FrameTab):
         self.button_clover.grid(column=3, row=0)
         self.button_delete.grid(column=4, row=0)
         self.entry_pair_code.grid(column=0, row=1, columnspan=5)
-        self.progress_bar.grid(column=0, row=3, columnspan=5)
+        self.status_message.grid(column=0, row=3, columnspan=5)
         self.dropdown_wii_u.grid(column=0, row=2, columnspan=5)
 
     # noinspection PyUnusedLocal
@@ -99,7 +99,6 @@ class FrameGetKey(FrameTab):
         if len(code) == 4:
             self.getting_psk = True
             self.set_code_text("")
-            self.progress_bar.grid()
             self.get_psk(code, wii_u_interface)
 
     def get_psk(self, code, interface):
@@ -127,19 +126,22 @@ class FrameGetKey(FrameTab):
             self.deactivate()
             self.activate()
             messagebox.showerror("Auth Saved", "Successfully paired with Wii U.")
+        elif status == WpaSupplicant.SCANNING:
+            self.status_message["text"] = "Scanning"
+        elif status == WpaSupplicant.CONNECTING:
+            self.status_message["text"] = "Connecting"
 
     def activate(self):
         LoggerGui.debug("FrameTab activate called")
         self.getting_psk = False
         self.set_code_text("")
-        self.progress_bar.start()
         if not self.wpa_supplicant or not self.wpa_supplicant.get_status():
-            self.progress_bar.grid_remove()
+            self.status_message["text"] = ""
         self.dropdown_wii_u["values"] = InterfaceUtil.get_wiiu_compatible_interfaces()
 
     def deactivate(self):
         LoggerGui.debug("FrameTab deactivate called")
-        self.progress_bar.stop()
+        self.status_message["text"] = ""
         self.getting_psk = False
         if self.wpa_supplicant:
             self.wpa_supplicant.stop()

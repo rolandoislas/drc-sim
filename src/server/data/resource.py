@@ -1,6 +1,7 @@
 import os
 
 import pkg_resources
+import sys
 
 from src.server.util.logging.logger import Logger
 
@@ -22,12 +23,30 @@ class Resource:
             file_path = join(file_path, pre, in_path)
             if os.path.exists(file_path):
                 try:
-                    self.resource = open(file_path).read()
+                    with open(file_path) as f:
+                        self.resource = f.read()
                 except UnicodeDecodeError:
                     Logger.debug("Opening resource as binary.")
-                    self.resource = open(file_path, "rb").read()
+                    with open(file_path, "rb") as f:
+                        self.resource = f.read()
                 Logger.extra("Found resource in local resource directory.")
                 return
-        # Attempt to get from package
-        self.resource = pkg_resources.resource_string(pkg_resources.Requirement.parse("drcsim"), join(pre, in_path))
-        Logger.extra("Found resource in package.")
+        # Check /usr/local - pip installs to here
+        file_path = "/usr/local/resources/" + in_path
+        if os.path.exists(file_path):
+            try:
+                with open(file_path) as f:
+                    self.resource = f.read()
+            except UnicodeDecodeError:
+                Logger.debug("Opening resource as binary.")
+                with open(file_path, "rb") as f:
+                    self.resource = f.read()
+                Logger.extra("Found resource in /usr/local/ resource directory.")
+                return
+        # Attempt to get from package - setup.py installs here
+        try:
+            self.resource = pkg_resources.resource_string(pkg_resources.Requirement.parse("drcsim"), join(pre, in_path))
+            Logger.extra("Found resource in package.")
+        except FileNotFoundError:
+            Logger.throw("Could not find resource: %s" % join(pre, in_path))
+            sys.exit()

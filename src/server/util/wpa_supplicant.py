@@ -6,7 +6,7 @@ from threading import Thread
 import pexpect
 
 from src.server.data import constants
-from src.server.data.config_server import ConfigServer
+from src.server.data.config_general import ConfigGeneral
 from src.server.util.logging.logger_wpa import LoggerWpa
 from src.server.util.process_util import ProcessUtil
 from src.server.util.status_sending_thread import StatusSendingThread
@@ -94,20 +94,25 @@ class WpaSupplicant(StatusSendingThread):
                     self.time_start += 1
             # scanning
             elif not self.scan_contains_wii_u(scan_results) or "wpa_state=SCANNING" in wpa_status:
-                LoggerWpa.finer("%d seconds until scan timeout", ConfigServer.scan_timeout - self.time_scan)
+                LoggerWpa.finer("%d seconds until scan timeout", ConfigGeneral.scan_timeout - self.time_scan)
+                # disconnect
+                if self.time_scan == -1:
+                    status = self.DISCONNECTED
                 # timeout scan
-                if self.time_scan >= ConfigServer.scan_timeout:
+                elif self.time_scan >= ConfigGeneral.scan_timeout:
                     status = self.NOT_FOUND
                 else:
                     status = self.SCANNING
                     self.time_scan += 1
             elif "wpa_state=COMPLETED" in wpa_status:
                 status = self.CONNECTED
-                self.time_scan = 0  # forces a disconnect - might need to be handled better
+                self.time_scan = -1  # forces a disconnect - might need to be handled better
             elif "wpa_state=AUTHENTICATING" in wpa_status or "wpa_state=ASSOCIATING" in wpa_status:
                 status = self.CONNECTING
             elif "wpa_state=DISCONNECTED" in wpa_status:
                 status = self.DISCONNECTED
+                if self.time_scan != -1:
+                    status = self.FAILED_START
             else:
                 LoggerWpa.extra("WPA status: %s", wpa_status)
                 status = self.UNKNOWN
@@ -150,12 +155,6 @@ class WpaSupplicant(StatusSendingThread):
             LoggerWpa.debug("Ignored stop request: already stopped")
             return
         self.running = False
-        if self.status_check_thread:
-            LoggerWpa.debug("Stopping wpa status check")
-            try:
-                self.status_check_thread.join()
-            except RuntimeError as e:
-                LoggerWpa.exception(e)
         if self.psk_thread_cli and self.psk_thread_cli.isalive():
             LoggerWpa.debug("Stopping psk pexpect spawn")
             self.psk_thread_cli.sendline("quit")
@@ -200,6 +199,8 @@ class WpaSupplicant(StatusSendingThread):
           NOT_FOUND: wpa_supplicant_drc did not find any Wii U APs
           TERMINATED: wpa_supplicant_drc could not authenticate with any SSIDs
           DISCONNECTED: auth details were saved
+          SCANNING: scan has started
+          CONNECTING: attempting to authenticate with a Wii U
         :return: None
         """
         self.connect(conf_path, interface, status_check=False)
@@ -220,10 +221,19 @@ class WpaSupplicant(StatusSendingThread):
             # Scan for Wii U SSIDs
             scan_tries = 5
             wii_u_bssids = []
+            self.set_status(self.SCANNING)
             while self.running and scan_tries > 0:
                 self.psk_thread_cli.sendline("scan")
                 LoggerWpa.debug("CLI expect waiting for scan results available event")
-                self.psk_thread_cli.expect("<3>CTRL-EVENT-SCAN-RESULTS", timeout=60)
+                scan_wait_tries = 60
+                while self.running:
+                    try:
+                        self.psk_thread_cli.expect("<3>CTRL-EVENT-SCAN-RESULTS", timeout=1)
+                        break
+                    except pexpect.TIMEOUT:
+                        scan_wait_tries -= 1
+                        if scan_wait_tries <= 0:
+                            raise pexpect.TIMEOUT("Scan timeout")
                 self.psk_thread_cli.sendline("scan_results")
                 LoggerWpa.debug("CLI expect waiting for scan results")
                 self.psk_thread_cli.expect("bssid / frequency / signal level / flags / ssid")
@@ -247,13 +257,22 @@ class WpaSupplicant(StatusSendingThread):
                 self.set_status(self.NOT_FOUND)
                 return
             # attempt to pair with any wii u bssid
+            self.set_status(self.CONNECTING)
             for bssid in wii_u_bssids:
                 self.psk_thread_cli.sendline("wps_pin %s %s" % (bssid, code + "5678"))
                 LoggerWpa.debug("CLI expect waiting for wps_pin input confirmation")
                 self.psk_thread_cli.expect(code + "5678")
                 LoggerWpa.debug("CLI expect waiting for authentication")
                 try:
-                    self.psk_thread_cli.expect("<3>WPS-CRED-RECEIVED", timeout=60)
+                    connect_wait_tries = 60
+                    while self.running:
+                        try:
+                            self.psk_thread_cli.expect("<3>WPS-CRED-RECEIVED", timeout=1)
+                            break
+                        except pexpect.TIMEOUT:
+                            connect_wait_tries -= 1
+                            if connect_wait_tries <= 0:
+                                raise pexpect.TIMEOUT("Connect Timeout")
                     # save conf
                     LoggerWpa.debug("PSK obtained")
                     # Save to temp config before reading from it
@@ -271,6 +290,11 @@ class WpaSupplicant(StatusSendingThread):
             LoggerWpa.debug("PSK get attempt ended with an error.")
             LoggerWpa.exception(e)
             self.set_status(self.FAILED_START)
+        # Unexpected EOF
+        except pexpect.EOF as e:
+            if self.running:  # Thread was not killed
+                LoggerWpa.exception(e)
+            return
         # Failed to authenticate
         LoggerWpa.debug("Could not authenticate with any SSIDs")
         self.set_status(self.TERMINATED)
