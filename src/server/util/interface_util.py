@@ -76,13 +76,22 @@ class InterfaceUtil:
         conf_data = conf.readlines()
         conf.close()
         managed = False
+        device_entry = cls.get_device_unmanaged_entry(interface)
         for line in conf_data:
-            if line.startswith("unmanaged-devices=") and "mac:" + cls.get_mac(interface) not in line:
+            if line.startswith("unmanaged-devices=") and device_entry not in line:
                 managed = True  # Ensure configs with duplicates raise an unmanaged prompt
         if "unmanaged-devices=" not in " ".join(conf_data):
             managed = True
         Logger.debug("Interface \"%s\" managed by network manager: %s", interface, managed)
         return managed
+
+    @classmethod
+    def get_device_unmanaged_entry(cls, interface):
+        # Ubuntu 17.04+ randomizes the MAC address of the device each time network manager restarts.
+        # Fortunately, the interface names make up for that by containing the hardware address
+        if OsUtil.is_ubuntu() and int(OsUtil.get_dist_version()[0]) >= 17:
+            return "interface-name:" + interface
+        return "mac:" + cls.get_mac(interface)
 
     @classmethod
     def set_unmanaged_by_network_manager(cls, interface):
@@ -91,7 +100,7 @@ class InterfaceUtil:
         with open(constants.PATH_CONF_NETWORK_MANAGER, "r") as conf_read:
             conf = conf_read.read().splitlines()
         added = False
-        entry = "mac:" + cls.get_mac(interface)
+        entry = cls.get_device_unmanaged_entry(interface)
         # Add Entry
         for line in range(0, len(conf)):
             # Add keyfile plugin if it's not enabled
