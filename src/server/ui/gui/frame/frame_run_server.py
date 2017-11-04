@@ -119,8 +119,8 @@ class FrameRunServer(FrameTab):
         if status == WpaSupplicant.CONNECTED:
             LoggerGui.debug("Routing")
             InterfaceUtil.dhclient(self.wii_u_interface)
-            InterfaceUtil.set_metric(self.normal_interface, 0)
             InterfaceUtil.set_metric(self.wii_u_interface, 1)
+            InterfaceUtil.set_metric(self.normal_interface, 0)
             LoggerGui.debug("Starting backend")
             self.drc_sim_c = DrcSimC()
             self.drc_sim_c.add_status_change_listener(self.backend_status_changed)
