@@ -20,8 +20,10 @@
 #    Detect and install to virtualenv
 # June 3, 2017 - 1.1.3
 #    Use python3 from virtualenv if found
+# May 8, 2018 - 1.2
+#    Migrate to pkexec from gksu
 
-VERSION="1.1.3"
+VERSION="1.2"
 REPO_DRC_SIM="https://github.com/rolandoislas/drc-sim.git"
 REPO_WPA_SUPPLICANT_DRC="https://github.com/rolandoislas/drc-hostap.git"
 REPO_DRC_SIM_C="https://github.com/rolandoislas/drc-sim-c.git"
@@ -37,7 +39,7 @@ check_os() {
         # Backend dependencies
         dependencies=("python3" "python3-pip"
         "net-tools" "wireless-tools" "sysvinit-utils" "psmisc" "rfkill"
-        "isc-dhcp-client" "ifmetric" "python3-tk" "gksu")
+        "isc-dhcp-client" "ifmetric" "python3-tk" "policykit-1")
         # Wpa supplicant compile dependencies
         dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make" "pkg-config")
         # DRC Sim Server C++
