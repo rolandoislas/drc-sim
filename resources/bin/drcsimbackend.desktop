@@ -2,7 +2,7 @@
 Version=1.0
 Name=DRC SIM Server
 Comment=Wii U Gamepad Emulator Backend Server
-Exec=pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY /usr/local/bin/drc-sim-backend
+Exec=pkexec /usr/local/bin/drc-sim-backend
 Icon=drcsimbackend
 Terminal=false
 Type=Application

@@ -37,6 +37,9 @@ setup(name='drcsim',
           ]),
           ('/usr/share/icons/hicolor/512x512/apps', [
               'resources/image/drcsimbackend.png'
+          ]),
+          ('/usr/share/polkit-1/actions', [
+              'resources/bin/com.rolandoislas.drcsim.server.policy'
           ])
       ],
       scripts=['drc-sim-backend'],

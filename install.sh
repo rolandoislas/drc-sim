@@ -43,7 +43,7 @@ check_os() {
         # Wpa supplicant compile dependencies
         dependencies+=("git" "libssl-dev" "libnl-genl-3-dev" "gcc" "make" "pkg-config")
         # DRC Sim Server C++
-        dependencies+=("libavcodec-dev" "libswscale-dev" "libjpeg-dev" "cmake")
+        dependencies+=("libavcodec-dev" "libswscale-dev" "libjpeg-dev" "cmake" "zlib1g-dev")
     else
         echo "The command apt-get was not found. This OS is not supported."
         exit 1
@@ -252,7 +252,7 @@ uninstall() {
     fi
     # Launcher (.desktop)
     to_remove=("/usr/share/applications/drc-sim-backend.desktop" "/usr/share/applications/drcsimbackend.desktop"
-        "/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png")
+        "/usr/share/icons/hicolor/512x512/apps/drcsimbackend.png", "/usr/share/polkit-1/actions/com.rolandoislas.drcsim.server.policy")
     for item in "${to_remove[@]}"; do
         if [[ -f "${item}" ]]; then
             rm -f ${item} &> /dev/null
