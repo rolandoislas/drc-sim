@@ -11,7 +11,8 @@
 #    Add setup.py outputs to install.txt during install and it is read from for an uninstall
 #    Move init script, desktop launcher, and icon to setup.py
 #    Add version number
-#    Add pkg-info - wpa_supplicant compile fails without it
+#    Add pkg-i
+nfo - wpa_supplicant compile fails without it
 #    Remove virtualenv
 # June 1, 2017 - 1.1.1
 #    Fix Make, cmake, and setup.py not returning on errors
